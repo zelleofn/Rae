@@ -12,7 +12,8 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "tailwind:init": "tailwindcss init -p"
   },
   "dependencies": {
     "pdfjs-dist": "^5.4.530",
@@ -21,6 +22,7 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@wxt-dev/module-react": "^1.1.5",
