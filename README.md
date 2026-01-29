@@ -1,1 +1,1 @@
-# Rae
+# Rae (Resume Autofill Extension)
