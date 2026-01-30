@@ -15,6 +15,9 @@ interface AuthStore {
   logout: () => void
   setToken: (token: string) => void
 }
+
+const API_URL = import.meta.env.VITE_API_URL
+
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   token: null,
@@ -24,18 +27,24 @@ export const useAuthStore = create<AuthStore>((set) => ({
   register: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await fetch('http://localhost:3000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
 
+      const text = await response.text()
+      
+      if (!text) {
+        throw new Error('Empty response from server')
+      }
+      
+      const data = JSON.parse(text)
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Registration failed')
       }
 
-      const data = await response.json()
       set({
         user: { id: data.id, email: data.email },
         token: data.token,
@@ -53,18 +62,24 @@ export const useAuthStore = create<AuthStore>((set) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null })
     try {
-      const response = await fetch('http://localhost:3000/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       })
 
+      const text = await response.text()
+      
+      if (!text) {
+        throw new Error('Empty response from server')
+      }
+      
+      const data = JSON.parse(text)
+
       if (!response.ok) {
-        const data = await response.json()
         throw new Error(data.error || 'Login failed')
       }
 
-      const data = await response.json()
       set({
         user: { id: data.id, email: data.email },
         token: data.token,
