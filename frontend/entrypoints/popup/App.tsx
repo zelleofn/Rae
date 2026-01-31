@@ -1,12 +1,18 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from './stores/authStore'
+import ResumeUpload from './components/ResumeUpload'
 
 export default function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'login' | 'register'>('login')
+  const [isHydrating, setIsHydrating] = useState(true)
   
-  const { user, isLoading, error, login, register, logout } = useAuthStore()
+  const { user, isLoading, error, login, register, logout, hydrate } = useAuthStore()
+
+  useEffect(() => {
+    hydrate().then(() => setIsHydrating(false))
+  }, [hydrate])
 
   const handleSubmit = async () => {
     try {
@@ -20,6 +26,14 @@ export default function App() {
     } catch (err) {
       console.error(err)
     }
+  }
+
+  if (isHydrating) {
+    return (
+      <div style={{ width: '400px', minHeight: '500px', backgroundColor: '#f0f1f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <p>Loading...</p>
+      </div>
+    )
   }
 
   return (
@@ -48,7 +62,7 @@ export default function App() {
               type="password"
               placeholder="Password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value.replace(/\s/g, ''))}
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px' }}
             />
             {error && <p style={{ color: '#dc2626', fontSize: '12px' }}>{error}</p>}
@@ -72,15 +86,35 @@ export default function App() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <p style={{ color: '#374151', textAlign: 'center' }}>Welcome back, {user.email}!</p>
-            <button style={{ width: '100%', backgroundColor: '#16a34a', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>
-              Upload Resume
-            </button>
-            <button style={{ width: '100%', backgroundColor: '#a855f7', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}>
+
+            
+            <ResumeUpload />
+
+            <button
+              style={{
+                width: '100%',
+                backgroundColor: '#a855f7',
+                color: 'white',
+                padding: '8px',
+                borderRadius: '4px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
               Autofill Form
             </button>
+
             <button
               onClick={logout}
-              style={{ width: '100%', backgroundColor: '#dc2626', color: 'white', padding: '8px', borderRadius: '4px', border: 'none', cursor: 'pointer' }}
+              style={{
+                width: '100%',
+                backgroundColor: '#dc2626',
+                color: 'white',
+                padding: '8px',
+                borderRadius: '4px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
             >
               Logout
             </button>

@@ -10,6 +10,7 @@ import (
     "github.com/joho/godotenv"
     "github.com/jackc/pgx/v5/pgxpool"
     "github.com/zelleofn/rae-backend/handlers"
+    "github.com/zelleofn/rae-backend/middleware"
 )
 
 func main() {
@@ -51,9 +52,14 @@ func main() {
     r.POST("/api/auth/register", handlers.RegisterUser)
     r.POST("/api/auth/login", handlers.LoginUser)
 
-    r.POST("/api/resume/upload", func(c *gin.Context) {
-        c.JSON(200, gin.H{"message": "upload resume endpoint"})
-    })
+    
+    authorized := r.Group("/api")
+    authorized.Use(middleware.AuthMiddleware())
+    {
+        authorized.POST("/resume/upload", handlers.UploadResume)
+        authorized.GET("/resume/:id", handlers.GetResume)
+        authorized.GET("/resumes", handlers.GetUserResumes)
+    }
 
     port := os.Getenv("PORT")
     if port == "" {

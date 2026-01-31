@@ -18,49 +18,50 @@ type Claims struct {
 }
 
 func AuthMiddleware() gin.HandlerFunc {
-    return func(c*gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
-			c.Abort()
-			return
-}
+    return func(c *gin.Context) {
+        authHeader := c.GetHeader("Authorization")
+        if authHeader == "" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is required"})
+            c.Abort()
+            return
+        }
 
-ports := strings.Split(authHeader, "")
-if len(ports) !=2 || ports[0] != "Bearer" {
-	c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header invalid"})
-	c.Abort()
-	return
-}
+        parts := strings.Split(authHeader, " ")
+        if len(parts) != 2 || parts[0] != "Bearer" {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header invalid"})
+            c.Abort()
+            return
+        }
 
-tokenString := ports[1]
+        tokenString := parts[1]
 
-token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-		return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-	}
-	return []byte(os.Getenv("JWT_SECRET")), nil
-})
+        token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+            if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+                return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+            }
+            return []byte(os.Getenv("JWT_SECRET")), nil
+        })
 
-if err != nil {
-    c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-    c.Abort()
-    return
-}
+        if err != nil {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+            c.Abort()
+            return
+        }
 
-claims, ok := token.Claims.(*Claims)
-if !ok || !token.Valid {
-	c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid claims"})
-	c.Abort()
-	return
-}
+        claims, ok := token.Claims.(*Claims)
+        if !ok || !token.Valid {
+            c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid claims"})
+            c.Abort()
+            return
+        }
 
         c.Set("user_id", claims.UserID)
-		c.Set("email", claims.Email)
+        c.Set("email", claims.Email)
 
-		c.Next()
-	}
+        c.Next()
+    }
 }
+
 
 func GenerateToken(userID int64, email string) (string, error) {
 	claims := Claims{
