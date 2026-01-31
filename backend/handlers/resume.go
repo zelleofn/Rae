@@ -37,8 +37,20 @@ func UploadResume(c *gin.Context) {
 
 	db := c.MustGet("db").(*pgxpool.Pool)
 
+	
+	_, err := db.Exec(context.Background(),
+		"DELETE FROM resumes WHERE user_id = $1",
+		userID,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete old resume"})
+		return
+	}
+
+	
 	var resumeID int64
-	err := db.QueryRow(context.Background(),
+	err = db.QueryRow(context.Background(),
 		"INSERT INTO resumes (user_id, file_name, raw_text, parsed_data) VALUES ($1, $2, $3, $4) RETURNING id",
 		userID,
 		req.FileName,

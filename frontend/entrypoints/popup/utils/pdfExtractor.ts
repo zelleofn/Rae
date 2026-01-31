@@ -1,6 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist'
 
-// Point PDF.js to the worker inside your extension bundle
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = chrome.runtime.getURL('pdf.worker.min.js')
 
 export async function extractTextFromPDF(file: File): Promise<string> {
