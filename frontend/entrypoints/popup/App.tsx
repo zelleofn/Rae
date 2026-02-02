@@ -7,7 +7,7 @@ export default function App() {
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [isHydrating, setIsHydrating] = useState(true)
-  
+
   const { user, isLoading, error, login, register, logout, hydrate } = useAuthStore()
 
   useEffect(() => {
@@ -87,8 +87,27 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <p style={{ color: '#374151', textAlign: 'center' }}>Welcome back, {user.email}!</p>
 
-            
-            <ResumeUpload />
+          
+<div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+  <div style={{ flex: 1 }}>
+    <ResumeUpload />
+  </div>
+  <button
+    onClick={() => console.log('Edit clicked')}
+    style={{
+      backgroundColor: '#64748b',
+      color: 'white',
+      padding: '8px 16px',
+      borderRadius: '4px',
+      border: 'none',
+      cursor: 'pointer',
+      fontSize: '14px',
+      fontWeight: '500'
+    }}
+  >
+    Edit
+  </button>
+</div>
 
             <button
               style={{
