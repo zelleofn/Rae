@@ -51,6 +51,7 @@ func main() {
 
     r.POST("/api/auth/register", handlers.RegisterUser)
     r.POST("/api/auth/login", handlers.LoginUser)
+    r.PUT("/api/resume/:id", handlers.UpdateResume)
 
     
     authorized := r.Group("/api")

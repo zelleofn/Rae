@@ -3,11 +3,12 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"encoding/json"
 )
 
 type ResumeUploadRequest struct {
@@ -17,9 +18,9 @@ type ResumeUploadRequest struct {
 }
 
 type ResumeUploadResponse struct {
-	ID        int64  `json:"id"`
-	FileName  string `json:"file_name"`
-	Message   string `json:"message"`
+	ID       int64  `json:"id"`
+	FileName string `json:"file_name"`
+	Message  string `json:"message"`
 }
 
 func UploadResume(c *gin.Context) {
@@ -42,13 +43,11 @@ func UploadResume(c *gin.Context) {
 		"DELETE FROM resumes WHERE user_id = $1",
 		userID,
 	)
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete old resume"})
 		return
 	}
 
-	
 	var resumeID int64
 	err = db.QueryRow(context.Background(),
 		"INSERT INTO resumes (user_id, file_name, raw_text, parsed_data) VALUES ($1, $2, $3, $4) RETURNING id",
@@ -102,12 +101,13 @@ func GetResume(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"id":           resumeID,
-		"file_name":    fileName,
-		"raw_text":     rawText,
-		"parsed_data":  json.RawMessage(parsedData),
+		"id":          resumeID,
+		"file_name":   fileName,
+		"raw_text":    rawText,
+		"parsed_data": json.RawMessage(parsedData),
 	})
 }
+
 func GetUserResumes(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -121,18 +121,17 @@ func GetUserResumes(c *gin.Context) {
 		"SELECT id, file_name, uploaded_at FROM resumes WHERE user_id = $1 ORDER BY uploaded_at DESC",
 		userID,
 	)
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 	defer rows.Close()
 
-	var resumes []map[string]interface{}
+	resumes := []map[string]interface{}{}
 	for rows.Next() {
 		var id int64
 		var fileName string
-		var uploadedAt string
+		var uploadedAt time.Time
 
 		if err := rows.Scan(&id, &fileName, &uploadedAt); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "scan error"})
@@ -142,9 +141,50 @@ func GetUserResumes(c *gin.Context) {
 		resumes = append(resumes, map[string]interface{}{
 			"id":          id,
 			"file_name":   fileName,
-			"uploaded_at": uploadedAt,
+			"uploaded_at": uploadedAt.Format(time.RFC3339),
 		})
 	}
 
 	c.JSON(http.StatusOK, gin.H{"resumes": resumes})
+}
+
+func UpdateResume(c *gin.Context) {
+	resumeID := c.Param("id")
+
+	var req ResumeUploadRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+
+	result, err := db.Exec(context.Background(),
+		"UPDATE resumes SET file_name = $1, raw_text = $2, parsed_data = $3 WHERE id = $4 AND user_id = $5",
+		req.FileName,
+		req.RawText,
+		req.ParsedData,
+		resumeID,
+		userID,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update resume"})
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Resume updated successfully",
+	})
 }
