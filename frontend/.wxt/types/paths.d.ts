@@ -15,6 +15,7 @@ declare module "wxt/browser" {
     | "/index.js"
     | "/pdf.worker.min.js"
     | "/popup.html"
+    | "/sidepanel.html"
     | "/wxt.svg"
   type HtmlPublicPath = Extract<PublicPath, `${string}.html`>
   export interface WxtRuntime {

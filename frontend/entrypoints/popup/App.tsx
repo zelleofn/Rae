@@ -28,6 +28,22 @@ export default function App() {
     }
   }
 
+const handleEditClick = async () => {
+  try {
+    const windowInfo = await chrome.windows.getCurrent();
+    
+    if (windowInfo.id) {
+      
+      await (chrome.sidePanel as any).open({ windowId: windowInfo.id });
+
+     
+      window.close();
+    }
+  } catch (err) {
+    console.error("Error opening side panel:", err);
+  }
+};
+
   if (isHydrating) {
     return (
       <div style={{ width: '400px', minHeight: '500px', backgroundColor: '#f0f1f3', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -93,7 +109,7 @@ export default function App() {
     <ResumeUpload />
   </div>
   <button
-    onClick={() => console.log('Edit clicked')}
+    onClick={handleEditClick}
     style={{
       backgroundColor: '#64748b',
       color: 'white',
