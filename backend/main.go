@@ -33,33 +33,33 @@ func main() {
 
     r := gin.Default()
 
-  r.Use(cors.New(cors.Config{
-    AllowOrigins:     []string{"*"},
-    AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-    AllowHeaders:     []string{"Content-Type", "Authorization"},
-    AllowCredentials: true,
-}))
+    r.Use(cors.New(cors.Config{
+        AllowOrigins:     []string{"*"},
+        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+        AllowHeaders:     []string{"Content-Type", "Authorization"},
+        AllowCredentials: true,
+    }))
 
     r.Use(func(c *gin.Context) {
         c.Set("db", pool)
         c.Next()
     })
 
-    r.GET("/health", func(c *gin.Context) {
+    r.GET("/health", middleware.LenientRateLimitMiddleware(), func(c *gin.Context) {
         c.JSON(200, gin.H{"status": "ok"})
     })
 
-    r.POST("/api/auth/register", handlers.RegisterUser)
-    r.POST("/api/auth/login", handlers.LoginUser)
-    r.PUT("/api/resume/:id", handlers.UpdateResume)
+    r.POST("/api/auth/register", middleware.StrictRateLimitMiddleware(), handlers.RegisterUser)
+    r.POST("/api/auth/login", middleware.StrictRateLimitMiddleware(), handlers.LoginUser)
 
-    
     authorized := r.Group("/api")
     authorized.Use(middleware.AuthMiddleware())
+    authorized.Use(middleware.ModerateRateLimitMiddleware())
     {
         authorized.POST("/resume/upload", handlers.UploadResume)
         authorized.GET("/resume/:id", handlers.GetResume)
         authorized.GET("/resumes", handlers.GetUserResumes)
+        authorized.PUT("/resume/:id", handlers.UpdateResume)
     }
 
     port := os.Getenv("PORT")
