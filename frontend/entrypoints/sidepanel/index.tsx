@@ -552,76 +552,79 @@ const SidePanel = () => {
               />
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                  Start Month
-                </label>
-                <input
-                  type="text"
-                  value={exp.startMonth}
-                  onChange={(e) => handleExperienceChange(index, 'startMonth', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                  Start Year
-                </label>
-                <input
-                  type="text"
-                  value={exp.startYear}
-                  onChange={(e) => handleExperienceChange(index, 'startYear', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                  End Month
-                </label>
-                <input
-                  type="text"
-                  value={exp.endMonth}
-                  onChange={(e) => handleExperienceChange(index, 'endMonth', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                  End Year
-                </label>
-                <input
-                  type="text"
-                  value={exp.endYear}
-                  onChange={(e) => handleExperienceChange(index, 'endYear', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '6px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '4px',
-                    fontSize: '12px'
-                  }}
-                />
-              </div>
-            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+  {/* MONTHS */}
+  <div>
+    <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+      Start Month
+    </label>
+    <input
+      type="text"
+      value={exp.startMonth}
+      onChange={(e) => handleExperienceChange(index, 'startMonth', e.target.value)}
+      style={{
+        width: '100%',
+        padding: '6px',
+        border: '1px solid #d1d5db',
+        borderRadius: '4px',
+        fontSize: '12px'
+      }}
+    />
+  </div>
+  <div>
+    <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+      End Month
+    </label>
+    <input
+      type="text"
+      value={exp.endMonth}
+      onChange={(e) => handleExperienceChange(index, 'endMonth', e.target.value)}
+      style={{
+        width: '100%',
+        padding: '6px',
+        border: '1px solid #d1d5db',
+        borderRadius: '4px',
+        fontSize: '12px'
+      }}
+    />
+  </div>
+
+  {/* YEARS */}
+  <div>
+    <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+      Start Year
+    </label>
+    <input
+      type="text"
+      value={exp.startYear}
+      onChange={(e) => handleExperienceChange(index, 'startYear', e.target.value)}
+      style={{
+        width: '100%',
+        padding: '6px',
+        border: '1px solid #d1d5db',
+        borderRadius: '4px',
+        fontSize: '12px'
+      }}
+    />
+  </div>
+  <div>
+    <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+      End Year
+    </label>
+    <input
+      type="text"
+      value={exp.endYear}
+      onChange={(e) => handleExperienceChange(index, 'endYear', e.target.value)}
+      style={{
+        width: '100%',
+        padding: '6px',
+        border: '1px solid #d1d5db',
+        borderRadius: '4px',
+        fontSize: '12px'
+      }}
+    />
+  </div>
+</div>
             
             <button
               onClick={() => handleRemoveExperience(index)}
