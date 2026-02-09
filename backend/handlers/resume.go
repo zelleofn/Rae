@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -14,6 +15,12 @@ import (
 type ResumeUploadRequest struct {
 	FileName   string          `json:"file_name" binding:"required"`
 	RawText    string          `json:"raw_text" binding:"required"`
+	ParsedData json.RawMessage `json:"parsed_data" binding:"required"`
+	FileData   string          `json:"file_data" binding:"required"`
+}
+
+
+type UpdateParsedDataRequest struct {
 	ParsedData json.RawMessage `json:"parsed_data" binding:"required"`
 }
 
@@ -48,13 +55,21 @@ func UploadResume(c *gin.Context) {
 		return
 	}
 
+	
+	fileBytes, err := base64.StdEncoding.DecodeString(req.FileData)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file data encoding"})
+		return
+	}
+
 	var resumeID int64
 	err = db.QueryRow(context.Background(),
-		"INSERT INTO resumes (user_id, file_name, raw_text, parsed_data) VALUES ($1, $2, $3, $4) RETURNING id",
+		"INSERT INTO resumes (user_id, file_name, raw_text, parsed_data, file_data) VALUES ($1, $2, $3, $4, $5) RETURNING id",
 		userID,
 		req.FileName,
 		req.RawText,
 		req.ParsedData,
+		fileBytes,
 	).Scan(&resumeID)
 
 	if err != nil {
@@ -148,6 +163,112 @@ func GetUserResumes(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"resumes": resumes})
 }
 
+
+func CheckUserResume(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+
+	var resumeID int64
+	var fileName string
+	err := db.QueryRow(context.Background(),
+		"SELECT id, file_name FROM resumes WHERE user_id = $1 ORDER BY uploaded_at DESC LIMIT 1",
+		userID,
+	).Scan(&resumeID, &fileName)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusOK, gin.H{"has_resume": false})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"has_resume": true,
+		"id":         resumeID,
+		"file_name":  fileName,
+	})
+}
+
+
+func ViewResume(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+
+	var fileName string
+	var fileData []byte
+
+	err := db.QueryRow(context.Background(),
+		"SELECT file_name, file_data FROM resumes WHERE user_id = $1 ORDER BY uploaded_at DESC LIMIT 1",
+		userID,
+	).Scan(&fileName, &fileData)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
+		return
+	}
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Disposition", "inline; filename=\""+fileName+"\"")
+	c.Data(http.StatusOK, "application/pdf", fileData)
+}
+
+
+func UpdateParsedData(c *gin.Context) {
+	var req UpdateParsedDataRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+
+	result, err := db.Exec(context.Background(),
+		"UPDATE resumes SET parsed_data = $1 WHERE user_id = $2",
+		req.ParsedData,
+		userID,
+	)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update parsed data"})
+		return
+	}
+
+	if result.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Parsed data updated successfully",
+	})
+}
+
+
 func UpdateResume(c *gin.Context) {
 	resumeID := c.Param("id")
 
@@ -165,11 +286,19 @@ func UpdateResume(c *gin.Context) {
 
 	db := c.MustGet("db").(*pgxpool.Pool)
 
+	
+	fileBytes, err := base64.StdEncoding.DecodeString(req.FileData)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file data encoding"})
+		return
+	}
+
 	result, err := db.Exec(context.Background(),
-		"UPDATE resumes SET file_name = $1, raw_text = $2, parsed_data = $3 WHERE id = $4 AND user_id = $5",
+		"UPDATE resumes SET file_name = $1, raw_text = $2, parsed_data = $3, file_data = $4 WHERE id = $5 AND user_id = $6",
 		req.FileName,
 		req.RawText,
 		req.ParsedData,
+		fileBytes,
 		resumeID,
 		userID,
 	)

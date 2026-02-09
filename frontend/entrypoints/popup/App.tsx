@@ -28,21 +28,18 @@ export default function App() {
     }
   }
 
-const handleEditClick = async () => {
-  try {
-    const windowInfo = await chrome.windows.getCurrent();
-    
-    if (windowInfo.id) {
+  const handleEditClick = async () => {
+    try {
+      const windowInfo = await chrome.windows.getCurrent();
       
-      await (chrome.sidePanel as any).open({ windowId: windowInfo.id });
-
-     
-      window.close();
+      if (windowInfo.id) {
+        await (chrome.sidePanel as any).open({ windowId: windowInfo.id });
+        window.close();
+      }
+    } catch (err) {
+      console.error("Error opening side panel:", err);
     }
-  } catch (err) {
-    console.error("Error opening side panel:", err);
-  }
-};
+  };
 
   if (isHydrating) {
     return (
@@ -103,27 +100,26 @@ const handleEditClick = async () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <p style={{ color: '#374151', textAlign: 'center' }}>Welcome back, {user.email}!</p>
 
-          
-<div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-  <div style={{ flex: 1 }}>
-    <ResumeUpload />
-  </div>
-  <button
-    onClick={handleEditClick}
-    style={{
-      backgroundColor: '#64748b',
-      color: 'white',
-      padding: '8px 16px',
-      borderRadius: '4px',
-      border: 'none',
-      cursor: 'pointer',
-      fontSize: '14px',
-      fontWeight: '500'
-    }}
-  >
-    Edit
-  </button>
-</div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <div style={{ flex: 1 }}>
+                <ResumeUpload />
+              </div>
+              <button
+                onClick={handleEditClick}
+                style={{
+                  backgroundColor: '#64748b',
+                  color: 'white',
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500'
+                }}
+              >
+                Edit
+              </button>
+            </div>
 
             <button
               style={{

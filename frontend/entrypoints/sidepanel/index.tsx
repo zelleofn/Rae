@@ -6,18 +6,15 @@ import { getAuthToken } from './storageHelper'
 const SidePanel = () => {
   const [resumeData, setResumeData] = useState<ParsedResume | null>(null)
   const [resumeId, setResumeId] = useState<string>('')
-  const [fileName, setFileName] = useState<string>('')
-  const [rawText, setRawText] = useState<string>('')
+
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saveSuccess, setSaveSuccess] = useState(false)
 
-  
   useEffect(() => {
     const loadResume = async () => {
       try {
-        
         const token = await getAuthToken()
 
         if (!token) {
@@ -26,13 +23,11 @@ const SidePanel = () => {
           return
         }
 
-        
         const data = await resumeService.getUserResume(token)
         
         if (data) {
           setResumeId(data.id)
-          setFileName(data.file_name)
-          setRawText(data.raw_text)
+          
           setResumeData(data.parsed_data)
         } else {
           setError('No resume found. Please upload a resume first.')
@@ -59,7 +54,6 @@ const SidePanel = () => {
     newArray[index] = value
     
     if (field === 'experience') {
-     
       const newDetails = [...resumeData.experienceDetails]
       if (newDetails[index]) {
         newDetails[index] = { ...newDetails[index], text: value }
@@ -75,7 +69,6 @@ const SidePanel = () => {
     if (!resumeData) return
     
     if (field === 'experience') {
-      
       setResumeData({ 
         ...resumeData, 
         experience: [...resumeData.experience, ''],
@@ -102,7 +95,6 @@ const SidePanel = () => {
     if (!resumeData) return
     
     if (field === 'experience') {
-      
       setResumeData({
         ...resumeData,
         experience: resumeData.experience.filter((_, i) => i !== index),
@@ -138,7 +130,8 @@ const SidePanel = () => {
         return
       }
 
-      await resumeService.updateResume(token, resumeId, resumeData, fileName, rawText)
+      
+      await resumeService.updateResume(token, resumeId, resumeData, '', '')
       setSaveSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save resume')

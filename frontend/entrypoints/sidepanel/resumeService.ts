@@ -79,16 +79,15 @@ export const resumeService = {
   },
 
   async updateResume(token: string, resumeId: string, parsedData: ParsedResume, fileName: string, rawText: string): Promise<void> {
-    const response = await fetch(`${API_URL}/api/resume/upload`, {
-      method: 'POST',
+    const response = await fetch(`${API_URL}/api/resume/parsed`, {
+      method: 'PATCH',  
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        file_name: fileName,
-        parsed_data: parsedData,
-        raw_text: rawText,
+        parsed_data: parsedData,  
+       
       }),
     })
 

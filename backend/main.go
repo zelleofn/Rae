@@ -60,6 +60,9 @@ func main() {
         authorized.GET("/resume/:id", handlers.GetResume)
         authorized.GET("/resumes", handlers.GetUserResumes)
         authorized.PUT("/resume/:id", handlers.UpdateResume)
+        authorized.GET("/resume/check", handlers.CheckUserResume)
+        authorized.GET("/resume/view", handlers.ViewResume)
+        authorized.PATCH("/resume/parsed", handlers.UpdateParsedData)
     }
 
     port := os.Getenv("PORT")
