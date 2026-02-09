@@ -102,9 +102,8 @@ export default function App() {
             <p style={{ color: '#374151', textAlign: 'center' }}>Welcome back, {user.email}!</p>
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ flex: 1 }}>
                 <ResumeUpload />
-                <CVUpload />
               </div>
               <button
                 onClick={handleEditClick}
@@ -121,8 +120,9 @@ export default function App() {
               >
                 Edit
               </button>
-
             </div>
+
+            <CVUpload />
 
             <button
               style={{

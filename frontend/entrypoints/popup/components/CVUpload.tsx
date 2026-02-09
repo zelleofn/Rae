@@ -15,7 +15,6 @@ export default function CVUpload() {
   const user = useAuthStore((state) => state.user)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
-
   useEffect(() => {
     const checkCV = async () => {
       if (!user || !token) {
@@ -62,14 +61,9 @@ export default function CVUpload() {
         throw new Error('Failed to fetch CV')
       }
 
-      
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
-
-     
       window.open(url, '_blank')
-
-      
       setTimeout(() => URL.revokeObjectURL(url), 100)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to view CV')
@@ -85,12 +79,10 @@ export default function CVUpload() {
     setUploadSuccess(false)
 
     try {
-      
       const text = await extractTextFromPDF(file)
       const parsed = parseResume(text)
       setParsedData(parsed)
 
-     
       const fileData = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => {
@@ -140,55 +132,59 @@ export default function CVUpload() {
   }
 
   return (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-    
-    
-    {hasCV && (
-      <button
-        onClick={handleViewCV}
-        style={{
-          width: '100%', 
-          backgroundColor: '#64748b',
-          color: 'white',
-          padding: '8px',
-          borderRadius: '4px',
-          border: 'none',
-          cursor: 'pointer',
-          fontSize: '14px',
-        }}
-      >
-        View
-      </button>
-    )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', gap: '8px' }}>
+        {hasCV && (
+          <button
+            onClick={handleViewCV}
+            style={{
+              backgroundColor: '#64748b',
+              color: 'white',
+              padding: '8px 12px',
+              borderRadius: '4px',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '14px',
+              width: '40px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+            title="View Cover Letter"
+          >
+            View
+          </button>
+        )}
+        <button
+          onClick={handleButtonClick}
+          disabled={isLoading}
+          style={{
+            flex: 1,
+            backgroundColor: '#2563eb',
+            color: 'white',
+            padding: '8px',
+            borderRadius: '4px',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '14px',
+            opacity: isLoading ? 0.5 : 1,
+          }}
+        >
+          {isLoading ? 'Uploading...' : 'Upload Cover Letter'}
+        </button>
+      </div>
 
-    <button
-      onClick={handleButtonClick}
-      disabled={isLoading}
-      style={{
-        width: '100%', 
-        backgroundColor: '#2563eb',
-        color: 'white',
-        padding: '8px',
-        borderRadius: '4px',
-        border: 'none',
-        cursor: isLoading ? 'not-allowed' : 'pointer',
-        fontSize: '14px',
-        opacity: isLoading ? 0.5 : 1,
-      }}
-    >
-      {isLoading ? 'Uploading...' : 'Upload Cover Letter'}
-    </button>
+      <input
+        type="file"
+        accept=".pdf"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        style={{ display: 'none' }}
+      />
 
-    <input
-      type="file"
-      accept=".pdf"
-      ref={fileInputRef}
-      onChange={handleFileUpload}
-      style={{ display: 'none' }}
-    />
-
-    {error && <p style={{ color: '#dc2626', fontSize: '12px' }}>{error}</p>}
-    {uploadSuccess && <p style={{ color: '#16a34a', fontSize: '12px' }}>Cover Letter uploaded successfully!</p>}
-  </div>
-    )
+      {error && <p style={{ color: '#dc2626', fontSize: '12px' }}>{error}</p>}
+      {uploadSuccess && <p style={{ color: '#16a34a', fontSize: '12px' }}>Cover Letter uploaded successfully!</p>}
+    </div>
+  )
 }
