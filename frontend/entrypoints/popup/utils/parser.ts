@@ -41,7 +41,6 @@ export function extractFirstAndLastName(text: string): { firstName: string; last
   if (parts.length === 0) return { firstName: '', lastName: '' }
   if (parts.length === 1) return { firstName: parts[0], lastName: '' }
   
-
   return {
     firstName: parts[0],
     lastName: parts[parts.length - 1]
@@ -56,9 +55,9 @@ export function extractProfessionalSummary(text: string): string {
   
   return match[1]
     .trim()
-    .split('\n')[0] 
+    .split('\n')[0]
     .trim()
-    .substring(0, 500) 
+    .substring(0, 500)
 }
 
 export function extractStreetAddress(text: string): string {
@@ -74,11 +73,9 @@ export function extractCity(text: string): string {
 }
 
 export function extractLocation(text: string): string {
-
   let locationRegex = /(?:location|based)[\s\n:]*([^\n]+)/i
   let match = text.match(locationRegex)
   if (match) return match[1].trim()
-  
   
   const street = extractStreetAddress(text)
   const city = extractCity(text)
@@ -109,21 +106,19 @@ export function extractSkills(text: string): string[] {
 
   const skillsSection = skillsMatch[1]
   
-  
   const skills = skillsSection
     .split(/[,\n•\-\|;]/)
     .map(skill => skill.trim())
     .filter(skill => {
-      
       if (skill.length === 0 || skill.length > 50) return false
       if (/^(and|or|the|a)$/i.test(skill)) return false
       return true
     })
   
-  return [...new Set(skills)] 
+  return [...new Set(skills)]
 }
 
-export function extractExperience(text: string): string[] {
+export function extractExperienceText(text: string): string[] {
   const experienceSectionRegex = /(?:work\s+)?experience[\s\n:]*([^]*?)(?=\n\n|\n(?:education|projects|skills|professional)[\s\n:]|$)/i
   const experienceMatch = text.match(experienceSectionRegex)
   
@@ -139,7 +134,7 @@ export function extractExperience(text: string): string[] {
   return experiences
 }
 
-export function extractProjects(text: string): string[] {
+export function extractProjectsText(text: string): string[] {
   const projectsSectionRegex = /projects?[\s\n:]*([^]*?)(?=\n\n|\n(?:education|experience|skills|professional)[\s\n:]|$)/i
   const projectsMatch = text.match(projectsSectionRegex)
   
@@ -155,7 +150,7 @@ export function extractProjects(text: string): string[] {
   return projects
 }
 
-export function extractYearsFromExperience(experience: string): { startDate: string; endDate: string; startMonth: string; startYear: string; endMonth: string; endYear: string } {
+export function extractYearsFromText(experience: string): { startMonth: string; startYear: string; endMonth: string; endYear: string } {
   const fullDateRegex = /(\d{1,2})?[\s/]?(\d{4})\s*[-–]\s*(Present|Current|(\d{1,2})?[\s/]?(\d{4}))/i
   const match = experience.match(fullDateRegex)
   
@@ -175,8 +170,6 @@ export function extractYearsFromExperience(experience: string): { startDate: str
     }
     
     return {
-      startDate: `${startMonth}/${startYear}`,
-      endDate: `${endMonth}/${endYear}`,
       startMonth: startMonth,
       startYear: startYear,
       endMonth: String(endMonth),
@@ -184,10 +177,10 @@ export function extractYearsFromExperience(experience: string): { startDate: str
     }
   }
   
-  return { startDate: '', endDate: '', startMonth: '', startYear: '', endMonth: '', endYear: '' }
+  return { startMonth: '', startYear: '', endMonth: '', endYear: '' }
 }
 
-export function extractEducation(text: string): string[] {
+export function extractEducationText(text: string): string[] {
   const educationSectionRegex = /education[\s\n:]*([^]*?)(?=\n\n|\n(?:experience|projects|skills|professional)[\s\n:]|$)/i
   const educationMatch = text.match(educationSectionRegex)
   
@@ -204,12 +197,25 @@ export function extractEducation(text: string): string[] {
 }
 
 export interface ExperienceEntry {
-  text: string
-  startDate: string
-  endDate: string
+  jobTitle: string
+  companyName: string
+  description: string
   startMonth: string
   startYear: string
   endMonth: string
+  endYear: string
+}
+
+export interface ProjectEntry {
+  projectName: string
+  description: string
+  link: string
+}
+
+export interface EducationEntry {
+  schoolName: string
+  fieldOfStudy: string
+  startYear: string
   endYear: string
 }
 
@@ -226,15 +232,90 @@ export interface ParsedResume {
   country: string
   professionalSummary: string
   skills: string[]
-  experience: string[]
-  experienceDetails: ExperienceEntry[]
-  projects: string[]
-  education: string[]
+  experience: ExperienceEntry[]
+  projects: ProjectEntry[]
+  education: EducationEntry[]
+}
+
+function parseExperienceEntry(experienceText: string): ExperienceEntry {
+  const lines = experienceText.split('\n').filter(line => line.trim())
+  const dates = extractYearsFromText(experienceText)
+  
+  let jobTitle = ''
+  let companyName = ''
+  let description = experienceText
+  
+  if (lines.length > 0) {
+    jobTitle = lines[0]
+    if (lines.length > 1) {
+      companyName = lines[1]
+      description = lines.slice(2).join('\n')
+    }
+  }
+  
+  return {
+    jobTitle,
+    companyName,
+    description,
+    ...dates
+  }
+}
+
+function parseProjectEntry(projectText: string): ProjectEntry {
+  const lines = projectText.split('\n').filter(line => line.trim())
+  const urlRegex = /(https?:\/\/[^\s]+)/
+  const urlMatch = projectText.match(urlRegex)
+  
+  let projectName = ''
+  let description = projectText
+  let link = urlMatch ? urlMatch[0] : ''
+  
+  if (lines.length > 0) {
+    projectName = lines[0]
+    description = lines.slice(1).join('\n').replace(urlRegex, '').trim()
+  }
+  
+  return {
+    projectName,
+    description,
+    link
+  }
+}
+
+function parseEducationEntry(educationText: string): EducationEntry {
+  const lines = educationText.split('\n').filter(line => line.trim())
+  const yearRegex = /(\d{4})\s*[-–]\s*(\d{4}|Present|Current)/i
+  const yearMatch = educationText.match(yearRegex)
+  
+  let schoolName = ''
+  let fieldOfStudy = ''
+  let startYear = ''
+  let endYear = ''
+  
+  if (yearMatch) {
+    startYear = yearMatch[1]
+    endYear = yearMatch[2].toLowerCase() === 'present' || yearMatch[2].toLowerCase() === 'current' 
+      ? String(new Date().getFullYear()) 
+      : yearMatch[2]
+  }
+  
+  if (lines.length > 0) {
+    schoolName = lines[0].replace(yearRegex, '').trim()
+    if (lines.length > 1) {
+      fieldOfStudy = lines[1].replace(yearRegex, '').trim()
+    }
+  }
+  
+  return {
+    schoolName,
+    fieldOfStudy,
+    startYear,
+    endYear
+  }
 }
 
 export function parseResume(text: string): ParsedResume {
   const { firstName, lastName } = extractFirstAndLastName(text)
-  const experiences = extractExperience(text)
   const phone = extractPhone(text)
   const location = extractLocation(text)
   let country = extractCountry(text)
@@ -245,10 +326,38 @@ export function parseResume(text: string): ParsedResume {
     country = extractCountryFromLocation(location)
   }
   
-  const experienceDetails = experiences.map(exp => ({
-    text: exp,
-    ...extractYearsFromExperience(exp),
-  }))
+  const experienceTexts = extractExperienceText(text)
+  const projectTexts = extractProjectsText(text)
+  const educationTexts = extractEducationText(text)
+  
+  const experience = experienceTexts.length > 0 
+    ? experienceTexts.map(parseExperienceEntry)
+    : [{
+        jobTitle: '',
+        companyName: '',
+        description: '',
+        startMonth: '',
+        startYear: '',
+        endMonth: '',
+        endYear: ''
+      }]
+  
+  const projects = projectTexts.length > 0
+    ? projectTexts.map(parseProjectEntry)
+    : [{
+        projectName: '',
+        description: '',
+        link: ''
+      }]
+  
+  const education = educationTexts.length > 0
+    ? educationTexts.map(parseEducationEntry)
+    : [{
+        schoolName: '',
+        fieldOfStudy: '',
+        startYear: '',
+        endYear: ''
+      }]
   
   return {
     firstName,
@@ -263,9 +372,8 @@ export function parseResume(text: string): ParsedResume {
     country: country,
     professionalSummary: extractProfessionalSummary(text),
     skills: extractSkills(text),
-    experience: experiences,
-    experienceDetails: experienceDetails,
-    projects: extractProjects(text),
-    education: extractEducation(text),
+    experience,
+    projects,
+    education,
   }
-}
+} 

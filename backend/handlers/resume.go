@@ -12,22 +12,62 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type ResumeUploadRequest struct {
-	FileName   string          `json:"file_name" binding:"required"`
-	RawText    string          `json:"raw_text" binding:"required"`
-	ParsedData json.RawMessage `json:"parsed_data" binding:"required"`
-	FileData   string          `json:"file_data" binding:"required"`
+type ExperienceEntry struct {
+	JobTitle    string `json:"jobTitle"`
+	CompanyName string `json:"companyName"`
+	Description string `json:"description"`
+	StartMonth  string `json:"startMonth"`
+	StartYear   string `json:"startYear"`
+	EndMonth    string `json:"endMonth"`
+	EndYear     string `json:"endYear"`
 }
 
+type ProjectEntry struct {
+	ProjectName string `json:"projectName"`
+	Description string `json:"description"`
+	Link        string `json:"link"`
+}
+
+type EducationEntry struct {
+	SchoolName   string `json:"schoolName"`
+	FieldOfStudy string `json:"fieldOfStudy"`
+	StartYear    string `json:"startYear"`
+	EndYear      string `json:"endYear"`
+}
+
+type ParsedResume struct {
+	FirstName           string            `json:"firstName"`
+	LastName            string            `json:"lastName"`
+	Email               string            `json:"email"`
+	Phone               string            `json:"phone"`
+	CountryCode         string            `json:"countryCode"`
+	PhoneNumber         string            `json:"phoneNumber"`
+	StreetAddress       string            `json:"streetAddress"`
+	City                string            `json:"city"`
+	Location            string            `json:"location"`
+	Country             string            `json:"country"`
+	ProfessionalSummary string            `json:"professionalSummary"`
+	Skills              []string          `json:"skills"`
+	Experience          []ExperienceEntry `json:"experience"`
+	Projects            []ProjectEntry    `json:"projects"`
+	Education           []EducationEntry  `json:"education"`
+}
+
+type ResumeUploadRequest struct {
+	FileName   string       `json:"file_name" binding:"required"`
+	RawText    string       `json:"raw_text" binding:"required"`
+	ParsedData ParsedResume `json:"parsed_data" binding:"required"`
+	FileData   string       `json:"file_data" binding:"required"`
+}
 
 type UpdateParsedDataRequest struct {
-	ParsedData json.RawMessage `json:"parsed_data" binding:"required"`
+	ParsedData ParsedResume `json:"parsed_data" binding:"required"`
 }
 
 type ResumeUploadResponse struct {
-	ID       int64  `json:"id"`
-	FileName string `json:"file_name"`
-	Message  string `json:"message"`
+    ID       int64  `json:"id"`
+    FileName string `json:"file_name"`
+    Message  string `json:"message"`
 }
 
 func UploadResume(c *gin.Context) {

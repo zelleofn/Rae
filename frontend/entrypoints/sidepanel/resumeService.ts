@@ -1,10 +1,23 @@
 export interface ExperienceEntry {
-  text: string
-  startDate: string
-  endDate: string
+  jobTitle: string
+  companyName: string
+  description: string
   startMonth: string
   startYear: string
   endMonth: string
+  endYear: string
+}
+
+export interface ProjectEntry {
+  projectName: string
+  description: string
+  link: string
+}
+
+export interface EducationEntry {
+  schoolName: string
+  fieldOfStudy: string
+  startYear: string
   endYear: string
 }
 
@@ -21,14 +34,13 @@ export interface ParsedResume {
   country: string
   professionalSummary: string
   skills: string[]
-  experience: string[]
-  experienceDetails: ExperienceEntry[]
-  projects: string[]
-  education: string[]
+  experience: ExperienceEntry[]
+  projects: ProjectEntry[]
+  education: EducationEntry[]
 }
 
 export interface ResumeResponse {
-  id: string
+  id: number
   file_name: string
   raw_text: string
   parsed_data: ParsedResume
@@ -78,22 +90,21 @@ export const resumeService = {
     }
   },
 
-  async updateResume(token: string, resumeId: string, parsedData: ParsedResume, fileName: string, rawText: string): Promise<void> {
+async updateResume(token: string, parsedData: ParsedResume): Promise<void> {
     const response = await fetch(`${API_URL}/api/resume/parsed`, {
-      method: 'PATCH',  
+      method: 'PATCH',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        parsed_data: parsedData,  
-       
+        parsed_data: parsedData, 
       }),
     })
 
     if (!response.ok) {
-      const data = await response.json()
-      throw new Error(data.error || 'Failed to update resume')
+      const data = await response.json();
+      throw new Error(data.error || 'Failed to update resume');
     }
   },
 }

@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import { resumeService, ParsedResume, ExperienceEntry } from './resumeService'
+import { resumeService, ParsedResume, ExperienceEntry, ProjectEntry, EducationEntry } from './resumeService'
 import { getAuthToken } from './storageHelper'
 
 const SidePanel = () => {
   const [resumeData, setResumeData] = useState<ParsedResume | null>(null)
-  const [resumeId, setResumeId] = useState<string>('')
-
+  const [resumeId, setResumeId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -27,7 +26,6 @@ const SidePanel = () => {
         
         if (data) {
           setResumeId(data.id)
-          
           setResumeData(data.parsed_data)
         } else {
           setError('No resume found. Please upload a resume first.')
@@ -48,70 +46,100 @@ const SidePanel = () => {
     setSaveSuccess(false)
   }
 
-  const handleArrayChange = (field: 'skills' | 'experience' | 'projects' | 'education', index: number, value: string) => {
+  const handleSkillChange = (index: number, value: string) => {
     if (!resumeData) return
-    const newArray = [...resumeData[field]]
-    newArray[index] = value
-    
-    if (field === 'experience') {
-      const newDetails = [...resumeData.experienceDetails]
-      if (newDetails[index]) {
-        newDetails[index] = { ...newDetails[index], text: value }
-      }
-      setResumeData({ ...resumeData, experience: newArray, experienceDetails: newDetails })
-    } else {
-      setResumeData({ ...resumeData, [field]: newArray })
-    }
+    const newSkills = [...resumeData.skills]
+    newSkills[index] = value
+    setResumeData({ ...resumeData, skills: newSkills })
     setSaveSuccess(false)
   }
 
-  const handleAddArrayItem = (field: 'skills' | 'experience' | 'projects' | 'education') => {
+  const handleAddSkill = () => {
     if (!resumeData) return
-    
-    if (field === 'experience') {
-      setResumeData({ 
-        ...resumeData, 
-        experience: [...resumeData.experience, ''],
-        experienceDetails: [
-          ...resumeData.experienceDetails,
-          {
-            text: '',
-            startDate: '',
-            endDate: '',
-            startMonth: '',
-            startYear: '',
-            endMonth: '',
-            endYear: ''
-          }
-        ]
-      })
-    } else {
-      setResumeData({ ...resumeData, [field]: [...resumeData[field], ''] })
-    }
+    setResumeData({ ...resumeData, skills: [...resumeData.skills, ''] })
     setSaveSuccess(false)
   }
 
-  const handleRemoveArrayItem = (field: 'skills' | 'experience' | 'projects' | 'education', index: number) => {
+  const handleRemoveSkill = (index: number) => {
     if (!resumeData) return
-    
-    if (field === 'experience') {
-      setResumeData({
-        ...resumeData,
-        experience: resumeData.experience.filter((_, i) => i !== index),
-        experienceDetails: resumeData.experienceDetails.filter((_, i) => i !== index)
-      })
-    } else {
-      const newArray = resumeData[field].filter((_, i) => i !== index)
-      setResumeData({ ...resumeData, [field]: newArray })
-    }
+    setResumeData({ ...resumeData, skills: resumeData.skills.filter((_, i) => i !== index) })
     setSaveSuccess(false)
   }
 
-  const handleExperienceDetailChange = (index: number, field: keyof ExperienceEntry, value: string) => {
+  const handleExperienceChange = (index: number, field: keyof ExperienceEntry, value: string) => {
     if (!resumeData) return
-    const newDetails = [...resumeData.experienceDetails]
-    newDetails[index] = { ...newDetails[index], [field]: value }
-    setResumeData({ ...resumeData, experienceDetails: newDetails })
+    const newExperience = [...resumeData.experience]
+    newExperience[index] = { ...newExperience[index], [field]: value }
+    setResumeData({ ...resumeData, experience: newExperience })
+    setSaveSuccess(false)
+  }
+
+  const handleAddExperience = () => {
+    if (!resumeData) return
+    setResumeData({
+      ...resumeData,
+      experience: [...resumeData.experience, {
+        jobTitle: '',
+        companyName: '',
+        description: '',
+        startMonth: '',
+        startYear: '',
+        endMonth: '',
+        endYear: ''
+      }]
+    })
+    setSaveSuccess(false)
+  }
+
+  const handleRemoveExperience = (index: number) => {
+    if (!resumeData) return
+    setResumeData({ ...resumeData, experience: resumeData.experience.filter((_, i) => i !== index) })
+    setSaveSuccess(false)
+  }
+
+  const handleProjectChange = (index: number, field: keyof ProjectEntry, value: string) => {
+    if (!resumeData) return
+    const newProjects = [...resumeData.projects]
+    newProjects[index] = { ...newProjects[index], [field]: value }
+    setResumeData({ ...resumeData, projects: newProjects })
+    setSaveSuccess(false)
+  }
+
+  const handleAddProject = () => {
+    if (!resumeData) return
+    setResumeData({
+      ...resumeData,
+      projects: [...resumeData.projects, { projectName: '', description: '', link: '' }]
+    })
+    setSaveSuccess(false)
+  }
+
+  const handleRemoveProject = (index: number) => {
+    if (!resumeData) return
+    setResumeData({ ...resumeData, projects: resumeData.projects.filter((_, i) => i !== index) })
+    setSaveSuccess(false)
+  }
+
+  const handleEducationChange = (index: number, field: keyof EducationEntry, value: string) => {
+    if (!resumeData) return
+    const newEducation = [...resumeData.education]
+    newEducation[index] = { ...newEducation[index], [field]: value }
+    setResumeData({ ...resumeData, education: newEducation })
+    setSaveSuccess(false)
+  }
+
+  const handleAddEducation = () => {
+    if (!resumeData) return
+    setResumeData({
+      ...resumeData,
+      education: [...resumeData.education, { schoolName: '', fieldOfStudy: '', startYear: '', endYear: '' }]
+    })
+    setSaveSuccess(false)
+  }
+
+  const handleRemoveEducation = (index: number) => {
+    if (!resumeData) return
+    setResumeData({ ...resumeData, education: resumeData.education.filter((_, i) => i !== index) })
     setSaveSuccess(false)
   }
 
@@ -130,8 +158,7 @@ const SidePanel = () => {
         return
       }
 
-      
-      await resumeService.updateResume(token, resumeId, resumeData, '', '')
+      await resumeService.updateResume(token, resumeData)
       setSaveSuccess(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save resume')
@@ -195,7 +222,6 @@ const SidePanel = () => {
         </div>
       )}
 
-      {/* Personal Information */}
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
           Personal Information
@@ -312,7 +338,6 @@ const SidePanel = () => {
         </div>
       </section>
 
-      {/* Location */}
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
           Location
@@ -395,7 +420,6 @@ const SidePanel = () => {
         </div>
       </section>
 
-      {/* Professional Summary */}
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
           Professional Summary
@@ -415,7 +439,6 @@ const SidePanel = () => {
         />
       </section>
 
-      {/* Skills */}
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
           Skills
@@ -425,7 +448,7 @@ const SidePanel = () => {
             <input
               type="text"
               value={skill}
-              onChange={(e) => handleArrayChange('skills', index, e.target.value)}
+              onChange={(e) => handleSkillChange(index, e.target.value)}
               style={{
                 flex: 1,
                 padding: '8px',
@@ -435,7 +458,7 @@ const SidePanel = () => {
               }}
             />
             <button
-              onClick={() => handleRemoveArrayItem('skills', index)}
+              onClick={() => handleRemoveSkill(index)}
               style={{
                 padding: '8px 12px',
                 backgroundColor: '#dc2626',
@@ -451,7 +474,7 @@ const SidePanel = () => {
           </div>
         ))}
         <button
-          onClick={() => handleAddArrayItem('skills')}
+          onClick={handleAddSkill}
           style={{
             padding: '8px 16px',
             backgroundColor: '#3b82f6',
@@ -467,137 +490,141 @@ const SidePanel = () => {
         </button>
       </section>
 
-      {/* Experience */}
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
           Experience
         </h2>
         {resumeData.experience.map((exp, index) => (
           <div key={index} style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
-            <textarea
-              value={exp}
-              onChange={(e) => handleArrayChange('experience', index, e.target.value)}
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                fontSize: '14px',
-                fontFamily: 'Arial, sans-serif',
-                marginBottom: '10px'
-              }}
-            />
-            
-            {resumeData.experienceDetails[index] && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    Start Month
-                  </label>
-                  <input
-                    type="text"
-                    value={resumeData.experienceDetails[index].startMonth}
-                    onChange={(e) => handleExperienceDetailChange(index, 'startMonth', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '6px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    Start Year
-                  </label>
-                  <input
-                    type="text"
-                    value={resumeData.experienceDetails[index].startYear}
-                    onChange={(e) => handleExperienceDetailChange(index, 'startYear', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '6px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    Start Date
-                  </label>
-                  <input
-                    type="text"
-                    value={resumeData.experienceDetails[index].startDate}
-                    onChange={(e) => handleExperienceDetailChange(index, 'startDate', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '6px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    End Month
-                  </label>
-                  <input
-                    type="text"
-                    value={resumeData.experienceDetails[index].endMonth}
-                    onChange={(e) => handleExperienceDetailChange(index, 'endMonth', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '6px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    End Year
-                  </label>
-                  <input
-                    type="text"
-                    value={resumeData.experienceDetails[index].endYear}
-                    onChange={(e) => handleExperienceDetailChange(index, 'endYear', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '6px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
-                    End Date
-                  </label>
-                  <input
-                    type="text"
-                    value={resumeData.experienceDetails[index].endDate}
-                    onChange={(e) => handleExperienceDetailChange(index, 'endDate', e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '6px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '4px',
-                      fontSize: '12px'
-                    }}
-                  />
-                </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  Job Title
+                </label>
+                <input
+                  type="text"
+                  value={exp.jobTitle}
+                  onChange={(e) => handleExperienceChange(index, 'jobTitle', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
               </div>
-            )}
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  value={exp.companyName}
+                  onChange={(e) => handleExperienceChange(index, 'companyName', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                Description
+              </label>
+              <textarea
+                value={exp.description}
+                onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '6px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontFamily: 'Arial, sans-serif'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  Start Month
+                </label>
+                <input
+                  type="text"
+                  value={exp.startMonth}
+                  onChange={(e) => handleExperienceChange(index, 'startMonth', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  Start Year
+                </label>
+                <input
+                  type="text"
+                  value={exp.startYear}
+                  onChange={(e) => handleExperienceChange(index, 'startYear', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  End Month
+                </label>
+                <input
+                  type="text"
+                  value={exp.endMonth}
+                  onChange={(e) => handleExperienceChange(index, 'endMonth', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  End Year
+                </label>
+                <input
+                  type="text"
+                  value={exp.endYear}
+                  onChange={(e) => handleExperienceChange(index, 'endYear', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+            </div>
             
             <button
-              onClick={() => handleRemoveArrayItem('experience', index)}
+              onClick={() => handleRemoveExperience(index)}
               style={{
                 padding: '6px 12px',
                 backgroundColor: '#dc2626',
@@ -613,7 +640,7 @@ const SidePanel = () => {
           </div>
         ))}
         <button
-          onClick={() => handleAddArrayItem('experience')}
+          onClick={handleAddExperience}
           style={{
             padding: '8px 16px',
             backgroundColor: '#3b82f6',
@@ -629,29 +656,69 @@ const SidePanel = () => {
         </button>
       </section>
 
-      {/* Projects */}
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
           Projects
         </h2>
         {resumeData.projects.map((project, index) => (
-          <div key={index} style={{ marginBottom: '15px' }}>
-            <textarea
-              value={project}
-              onChange={(e) => handleArrayChange('projects', index, e.target.value)}
-              rows={3}
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                fontSize: '14px',
-                fontFamily: 'Arial, sans-serif',
-                marginBottom: '5px'
-              }}
-            />
+          <div key={index} style={{ marginBottom: '15px', padding: '15px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                Project Name
+              </label>
+              <input
+                type="text"
+                value={project.projectName}
+                onChange={(e) => handleProjectChange(index, 'projectName', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '12px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                Description
+              </label>
+              <textarea
+                value={project.description}
+                onChange={(e) => handleProjectChange(index, 'description', e.target.value)}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '6px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontFamily: 'Arial, sans-serif'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '10px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                Link
+              </label>
+              <input
+                type="text"
+                value={project.link}
+                onChange={(e) => handleProjectChange(index, 'link', e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '4px',
+                  fontSize: '12px'
+                }}
+              />
+            </div>
+
             <button
-              onClick={() => handleRemoveArrayItem('projects', index)}
+              onClick={() => handleRemoveProject(index)}
               style={{
                 padding: '6px 12px',
                 backgroundColor: '#dc2626',
@@ -667,7 +734,7 @@ const SidePanel = () => {
           </div>
         ))}
         <button
-          onClick={() => handleAddArrayItem('projects')}
+          onClick={handleAddProject}
           style={{
             padding: '8px 16px',
             backgroundColor: '#3b82f6',
@@ -683,29 +750,88 @@ const SidePanel = () => {
         </button>
       </section>
 
-      {/* Education */}
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
           Education
         </h2>
         {resumeData.education.map((edu, index) => (
-          <div key={index} style={{ marginBottom: '15px' }}>
-            <textarea
-              value={edu}
-              onChange={(e) => handleArrayChange('education', index, e.target.value)}
-              rows={2}
-              style={{
-                width: '100%',
-                padding: '8px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                fontSize: '14px',
-                fontFamily: 'Arial, sans-serif',
-                marginBottom: '5px'
-              }}
-            />
+          <div key={index} style={{ marginBottom: '15px', padding: '15px', backgroundColor: '#f9fafb', borderRadius: '4px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  School Name
+                </label>
+                <input
+                  type="text"
+                  value={edu.schoolName}
+                  onChange={(e) => handleEducationChange(index, 'schoolName', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  Field of Study
+                </label>
+                <input
+                  type="text"
+                  value={edu.fieldOfStudy}
+                  onChange={(e) => handleEducationChange(index, 'fieldOfStudy', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  Start Year
+                </label>
+                <input
+                  type="text"
+                  value={edu.startYear}
+                  onChange={(e) => handleEducationChange(index, 'startYear', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: '5px', fontSize: '12px', fontWeight: 'bold' }}>
+                  End Year
+                </label>
+                <input
+                  type="text"
+                  value={edu.endYear}
+                  onChange={(e) => handleEducationChange(index, 'endYear', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '6px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '4px',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+            </div>
+
             <button
-              onClick={() => handleRemoveArrayItem('education', index)}
+              onClick={() => handleRemoveEducation(index)}
               style={{
                 padding: '6px 12px',
                 backgroundColor: '#dc2626',
@@ -721,7 +847,7 @@ const SidePanel = () => {
           </div>
         ))}
         <button
-          onClick={() => handleAddArrayItem('education')}
+          onClick={handleAddEducation}
           style={{
             padding: '8px 16px',
             backgroundColor: '#3b82f6',
@@ -737,7 +863,6 @@ const SidePanel = () => {
         </button>
       </section>
 
-      {/* Save Button */}
       <div style={{ 
         position: 'sticky', 
         bottom: '0', 
