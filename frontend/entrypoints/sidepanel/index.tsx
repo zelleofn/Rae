@@ -237,7 +237,7 @@ const SidePanel = () => {
               value={resumeData.firstName}
               onChange={(e) => handleInputChange('firstName', e.target.value)}
               style={{
-                width: '100%',
+                width: '95%',
                 padding: '8px',
                 border: '1px solid #d1d5db',
                 borderRadius: '4px',
@@ -255,7 +255,7 @@ const SidePanel = () => {
               value={resumeData.lastName}
               onChange={(e) => handleInputChange('lastName', e.target.value)}
               style={{
-                width: '100%',
+                width: '95%',
                 padding: '8px',
                 border: '1px solid #d1d5db',
                 borderRadius: '4px',
@@ -273,7 +273,7 @@ const SidePanel = () => {
               value={resumeData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               style={{
-                width: '100%',
+                width: '95%',
                 padding: '8px',
                 border: '1px solid #d1d5db',
                 borderRadius: '4px',
@@ -291,7 +291,7 @@ const SidePanel = () => {
               value={resumeData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               style={{
-                width: '100%',
+                width: '95%',
                 padding: '8px',
                 border: '1px solid #d1d5db',
                 borderRadius: '4px',
@@ -309,7 +309,7 @@ const SidePanel = () => {
               value={resumeData.countryCode}
               onChange={(e) => handleInputChange('countryCode', e.target.value)}
               style={{
-                width: '100%',
+                width: '95%',
                 padding: '8px',
                 border: '1px solid #d1d5db',
                 borderRadius: '4px',
@@ -372,7 +372,7 @@ const SidePanel = () => {
                 value={resumeData.city}
                 onChange={(e) => handleInputChange('city', e.target.value)}
                 style={{
-                  width: '100%',
+                  width: '95%',
                   padding: '8px',
                   border: '1px solid #d1d5db',
                   borderRadius: '4px',
@@ -506,8 +506,8 @@ const SidePanel = () => {
                   value={exp.jobTitle}
                   onChange={(e) => handleExperienceChange(index, 'jobTitle', e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '6px',
+                    width: '90%',
+                    padding: '8px',
                     border: '1px solid #d1d5db',
                     borderRadius: '4px',
                     fontSize: '12px'
@@ -523,8 +523,8 @@ const SidePanel = () => {
                   value={exp.companyName}
                   onChange={(e) => handleExperienceChange(index, 'companyName', e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '6px',
+                    width: '85%',
+                    padding: '8px',
                     border: '1px solid #d1d5db',
                     borderRadius: '4px',
                     fontSize: '12px'
@@ -543,7 +543,7 @@ const SidePanel = () => {
                 rows={3}
                 style={{
                   width: '100%',
-                  padding: '6px',
+                  padding: '8px',
                   border: '1px solid #d1d5db',
                   borderRadius: '4px',
                   fontSize: '12px',
@@ -563,8 +563,8 @@ const SidePanel = () => {
       value={exp.startMonth}
       onChange={(e) => handleExperienceChange(index, 'startMonth', e.target.value)}
       style={{
-        width: '100%',
-        padding: '6px',
+        width: '90%',
+        padding: '8px',
         border: '1px solid #d1d5db',
         borderRadius: '4px',
         fontSize: '12px'
@@ -580,8 +580,8 @@ const SidePanel = () => {
       value={exp.endMonth}
       onChange={(e) => handleExperienceChange(index, 'endMonth', e.target.value)}
       style={{
-        width: '100%',
-        padding: '6px',
+        width: '90%',
+        padding: '8px',
         border: '1px solid #d1d5db',
         borderRadius: '4px',
         fontSize: '12px'
@@ -599,8 +599,8 @@ const SidePanel = () => {
       value={exp.startYear}
       onChange={(e) => handleExperienceChange(index, 'startYear', e.target.value)}
       style={{
-        width: '100%',
-        padding: '6px',
+        width: '85%',
+        padding: '8px',
         border: '1px solid #d1d5db',
         borderRadius: '4px',
         fontSize: '12px'
@@ -616,8 +616,8 @@ const SidePanel = () => {
       value={exp.endYear}
       onChange={(e) => handleExperienceChange(index, 'endYear', e.target.value)}
       style={{
-        width: '100%',
-        padding: '6px',
+        width: '85%',
+        padding: '8px',
         border: '1px solid #d1d5db',
         borderRadius: '4px',
         fontSize: '12px'
@@ -675,7 +675,7 @@ const SidePanel = () => {
                 onChange={(e) => handleProjectChange(index, 'projectName', e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '6px',
+                  padding: '8px',
                   border: '1px solid #d1d5db',
                   borderRadius: '4px',
                   fontSize: '12px'
@@ -693,7 +693,7 @@ const SidePanel = () => {
                 rows={3}
                 style={{
                   width: '100%',
-                  padding: '6px',
+                  padding: '8px',
                   border: '1px solid #d1d5db',
                   borderRadius: '4px',
                   fontSize: '12px',
@@ -712,7 +712,7 @@ const SidePanel = () => {
                 onChange={(e) => handleProjectChange(index, 'link', e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '6px',
+                  padding: '8px',
                   border: '1px solid #d1d5db',
                   borderRadius: '4px',
                   fontSize: '12px'
@@ -769,8 +769,8 @@ const SidePanel = () => {
                   value={edu.schoolName}
                   onChange={(e) => handleEducationChange(index, 'schoolName', e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '6px',
+                    width: '90%',
+                    padding: '8px',
                     border: '1px solid #d1d5db',
                     borderRadius: '4px',
                     fontSize: '12px'
@@ -786,8 +786,8 @@ const SidePanel = () => {
                   value={edu.fieldOfStudy}
                   onChange={(e) => handleEducationChange(index, 'fieldOfStudy', e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '6px',
+                    width: '90%',
+                    padding: '8px',
                     border: '1px solid #d1d5db',
                     borderRadius: '4px',
                     fontSize: '12px'
@@ -806,8 +806,8 @@ const SidePanel = () => {
                   value={edu.startYear}
                   onChange={(e) => handleEducationChange(index, 'startYear', e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '6px',
+                    width: '90%',
+                    padding: '8px',
                     border: '1px solid #d1d5db',
                     borderRadius: '4px',
                     fontSize: '12px'
@@ -823,8 +823,8 @@ const SidePanel = () => {
                   value={edu.endYear}
                   onChange={(e) => handleEducationChange(index, 'endYear', e.target.value)}
                   style={{
-                    width: '100%',
-                    padding: '6px',
+                    width: '90%',
+                    padding: '8px',
                     border: '1px solid #d1d5db',
                     borderRadius: '4px',
                     fontSize: '12px'
