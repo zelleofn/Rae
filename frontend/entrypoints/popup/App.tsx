@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuthStore } from './stores/authStore'
 import ResumeUpload from './components/ResumeUpload'
+import CVUpload from './components/CVUpload'
 
 export default function App() {
   const [email, setEmail] = useState('')
@@ -101,8 +102,9 @@ export default function App() {
             <p style={{ color: '#374151', textAlign: 'center' }}>Welcome back, {user.email}!</p>
 
             <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <ResumeUpload />
+                <CVUpload />
               </div>
               <button
                 onClick={handleEditClick}
@@ -119,6 +121,7 @@ export default function App() {
               >
                 Edit
               </button>
+
             </div>
 
             <button

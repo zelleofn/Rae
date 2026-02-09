@@ -63,6 +63,13 @@ func main() {
         authorized.GET("/resume/check", handlers.CheckUserResume)
         authorized.GET("/resume/view", handlers.ViewResume)
         authorized.PATCH("/resume/parsed", handlers.UpdateParsedData)
+        authorized.POST("/cv/upload", handlers.UploadCV)
+        authorized.GET("/cv/check", handlers.CheckUserCV)
+        authorized.GET("/cv/view", handlers.ViewCV)
+        authorized.PATCH("/cv/parsed", handlers.UpdateCVParsedData)
+        authorized.GET("/cv/:id", handlers.GetCV)
+        authorized.GET("/cvs", handlers.GetUserCVs)
+        authorized.PUT("/cv/:id", handlers.UpdateCV)
     }
 
     port := os.Getenv("PORT")
