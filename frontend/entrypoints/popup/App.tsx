@@ -18,6 +18,15 @@ export default function App() {
     hydrate().then(() => setIsHydrating(false))
   }, [hydrate])
 
+  useEffect(() => {
+    if (token) {
+      const API_URL = import.meta.env.VITE_API_URL
+      chrome.storage.local.set({ auth_token: token, api_url: API_URL })
+    } else {
+      chrome.storage.local.remove(['auth_token', 'api_url'])
+    }
+  }, [token])
+
   const handleSubmit = async () => {
     try {
       if (mode === 'login') {
@@ -51,6 +60,9 @@ export default function App() {
 
     try {
       const API_URL = import.meta.env.VITE_API_URL
+
+      
+      await chrome.storage.local.set({ auth_token: token, api_url: API_URL })
 
       const resumeResponse = await fetch(`${API_URL}/api/resumes`, {
         headers: {
@@ -94,11 +106,6 @@ export default function App() {
       if (!tab.id) {
         throw new Error('No active tab found')
       }
-
-      await chrome.storage.local.set({
-        auth_token: token,
-        api_url: API_URL
-      })
 
       const response = await chrome.tabs.sendMessage(tab.id, {
         action: 'autofill',
