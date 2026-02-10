@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { resumeService, ParsedResume, ExperienceEntry, ProjectEntry, EducationEntry } from './resumeService'
 import { getAuthToken } from './storageHelper'
 
+
 const SidePanel = () => {
   const [resumeData, setResumeData] = useState<ParsedResume | null>(null)
   const [resumeId, setResumeId] = useState<number | null>(null);

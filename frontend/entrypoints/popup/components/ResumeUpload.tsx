@@ -1,12 +1,11 @@
 import { useRef, useState, useEffect } from 'react'
 import { extractTextFromPDF } from '../utils/pdfExtractor'
-import { parseResume, ParsedResume } from '../utils/parser'
+import { parseResume } from '../utils/parser'
 import { useAuthStore } from '../stores/authStore'
 
 export default function ResumeUpload() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [parsedData, setParsedData] = useState<ParsedResume | null>(null)
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [hasResume, setHasResume] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
@@ -15,7 +14,6 @@ export default function ResumeUpload() {
   const user = useAuthStore((state) => state.user)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
 
- 
   useEffect(() => {
     const checkResume = async () => {
       if (!user || !token) {
@@ -62,14 +60,9 @@ export default function ResumeUpload() {
         throw new Error('Failed to fetch resume')
       }
 
-      
       const blob = await response.blob()
       const url = URL.createObjectURL(blob)
-
-      
       window.open(url, '_blank')
-
-     
       setTimeout(() => URL.revokeObjectURL(url), 100)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to view resume')
@@ -85,12 +78,9 @@ export default function ResumeUpload() {
     setUploadSuccess(false)
 
     try {
-      
       const text = await extractTextFromPDF(file)
       const parsed = parseResume(text)
-      setParsedData(parsed)
 
-      
       const fileData = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
         reader.onload = () => {

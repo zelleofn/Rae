@@ -8,8 +8,11 @@ export default function App() {
   const [password, setPassword] = useState('')
   const [mode, setMode] = useState<'login' | 'register'>('login')
   const [isHydrating, setIsHydrating] = useState(true)
+  const [isAutofilling, setIsAutofilling] = useState(false)
+  const [autofillMessage, setAutofillMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const { user, isLoading, error, login, register, logout, hydrate } = useAuthStore()
+  const token = useAuthStore((state) => state.token)
 
   useEffect(() => {
     hydrate().then(() => setIsHydrating(false))
@@ -41,6 +44,85 @@ export default function App() {
       console.error("Error opening side panel:", err);
     }
   };
+
+  const handleAutofill = async () => {
+    setIsAutofilling(true)
+    setAutofillMessage(null)
+
+    try {
+      const API_URL = import.meta.env.VITE_API_URL
+
+      const resumeResponse = await fetch(`${API_URL}/api/resumes`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!resumeResponse.ok) {
+        throw new Error('No resume found. Please upload a resume first.')
+      }
+
+      const resumeData = await resumeResponse.json()
+      const resumes = resumeData.resumes
+
+      if (!resumes || resumes.length === 0) {
+        throw new Error('No resume found. Please upload a resume first.')
+      }
+
+      const latestResumeId = resumes[0].id
+      const resumeDetailResponse = await fetch(`${API_URL}/api/resume/${latestResumeId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (!resumeDetailResponse.ok) {
+        throw new Error('Failed to fetch resume details')
+      }
+
+      const resumeDetail = await resumeDetailResponse.json()
+
+      const cvCheckResponse = await fetch(`${API_URL}/api/cv/check`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      const cvCheck = cvCheckResponse.ok ? await cvCheckResponse.json() : { has_cv: false }
+
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+      
+      if (!tab.id) {
+        throw new Error('No active tab found')
+      }
+
+      await chrome.storage.local.set({
+        auth_token: token,
+        api_url: API_URL
+      })
+
+      const response = await chrome.tabs.sendMessage(tab.id, {
+        action: 'autofill',
+        resumeData: resumeDetail.parsed_data,
+        cvAvailable: cvCheck.has_cv
+      })
+
+      if (response.success) {
+        setAutofillMessage({
+          type: 'success',
+          text: `Filled ${response.filledCount} fields!`
+        })
+        setTimeout(() => setAutofillMessage(null), 3000)
+      }
+    } catch (err) {
+      setAutofillMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Autofill failed'
+      })
+      setTimeout(() => setAutofillMessage(null), 5000)
+    } finally {
+      setIsAutofilling(false)
+    }
+  }
 
   if (isHydrating) {
     return (
@@ -124,7 +206,23 @@ export default function App() {
 
             <CVUpload />
 
+            {autofillMessage && (
+              <div style={{
+                padding: '8px',
+                backgroundColor: autofillMessage.type === 'success' ? '#dcfce7' : '#fee2e2',
+                border: `1px solid ${autofillMessage.type === 'success' ? '#16a34a' : '#dc2626'}`,
+                borderRadius: '4px',
+                color: autofillMessage.type === 'success' ? '#16a34a' : '#dc2626',
+                fontSize: '12px',
+                textAlign: 'center'
+              }}>
+                {autofillMessage.text}
+              </div>
+            )}
+
             <button
+              onClick={handleAutofill}
+              disabled={isAutofilling}
               style={{
                 width: '100%',
                 backgroundColor: '#a855f7',
@@ -132,10 +230,11 @@ export default function App() {
                 padding: '8px',
                 borderRadius: '4px',
                 border: 'none',
-                cursor: 'pointer',
+                cursor: isAutofilling ? 'not-allowed' : 'pointer',
+                opacity: isAutofilling ? 0.7 : 1,
               }}
             >
-              Autofill Form
+              {isAutofilling ? 'Autofilling...' : 'Autofill Form'}
             </button>
 
             <button
