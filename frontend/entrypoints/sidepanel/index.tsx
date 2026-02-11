@@ -936,29 +936,53 @@ const handleSave = async () => {
 
       {/* ── Languages ── */}
       <section style={{ marginBottom: '30px' }}>
-        <h2 style={sectionHead}>Languages</h2>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
+          Languages
+        </h2>
         {resumeData.languages.map((lang, i) => (
-          <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'flex-end' }}>
+          <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '15px', alignItems: 'flex-end' }}>
             <div style={{ flex: 2 }}>
-              <label style={{ ...labelStyle, fontSize: '12px' }}>Language</label>
-              <input type="text" value={lang.language} onChange={e => handleLanguageChange(i,'language',e.target.value)} style={{ ...inputStyle, fontSize: '12px' }} />
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Language</label>
+              <input 
+                type="text" 
+                value={lang.language} 
+                onChange={e => handleLanguageChange(i, 'language', e.target.value)} 
+                style={{ width: '85%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px' }} 
+              />
             </div>
-            <div style={{ flex: 1 }}>
-              <label style={{ ...labelStyle, fontSize: '12px' }}>Level</label>
-              <select value={lang.level} onChange={e => handleLanguageChange(i,'level',e.target.value)} style={{ ...selectStyle, fontSize: '12px' }}>
-                {LANGUAGE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
-              </select>
-            </div>
-            <button onClick={() => handleRemoveLanguage(i)} style={{ ...removeBtn, marginBottom: '1px' }}>Remove</button>
+            <div style={{ flex: 1.5 }}> 
+    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Level</label>
+    <select 
+      value={lang.level} 
+      onChange={e => handleLanguageChange(i, 'level', e.target.value)} 
+      style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+    >
+      {LANGUAGE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+    </select>
+  </div>
+            <button 
+              onClick={() => handleRemoveLanguage(i)} 
+              style={{ padding: '8px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
+            >
+              Remove
+            </button>
           </div>
         ))}
-        <button onClick={handleAddLanguage} style={addBtn}>Add Language</button>
+        <button onClick={handleAddLanguage} style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
+          Add Language
+        </button>
       </section>
 
       {/* ── Availability ── */}
       <section style={{ marginBottom: '30px' }}>
-        <h2 style={sectionHead}>Availability / Start Date</h2>
-        <select value={resumeData.availability} onChange={e => set('availability', e.target.value)} style={selectStyle}>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
+          Availability / Start Date
+        </h2>
+        <select 
+          value={resumeData.availability} 
+          onChange={e => set('availability', e.target.value)} 
+          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+        >
           <option value="">Select availability</option>
           {AVAILABILITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -966,56 +990,91 @@ const handleSave = async () => {
 
       {/* ── Salary Expectations ── */}
       <section style={{ marginBottom: '30px' }}>
-        <h2 style={sectionHead}>Salary Expectations</h2>
-        <div style={grid2}>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
+          Salary Expectations
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>Currency</label>
-            <select value={resumeData.salaryCurrency} onChange={e => set('salaryCurrency', e.target.value)} style={selectStyle}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Currency</label>
+            <select 
+              value={resumeData.salaryCurrency} 
+              onChange={e => set('salaryCurrency', e.target.value)} 
+              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+            >
               {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Type</label>
-            <select value={resumeData.salaryType} onChange={e => set('salaryType', e.target.value)} style={selectStyle}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Type</label>
+            <select 
+              value={resumeData.salaryType} 
+              onChange={e => set('salaryType', e.target.value)} 
+              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+            >
               <option value="monthly">Monthly</option>
               <option value="hourly">Hourly</option>
             </select>
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Amount</label>
-            <input type="number" min="0" value={resumeData.salaryAmount} onChange={e => set('salaryAmount', e.target.value)} placeholder="e.g. 5000" style={inputStyle} />
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Amount</label>
+            <input 
+              type="number" 
+              min="0" 
+              value={resumeData.salaryAmount} 
+              onChange={e => set('salaryAmount', e.target.value)} 
+              placeholder="e.g. 5000" 
+              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px' }} 
+            />
           </div>
         </div>
       </section>
 
       {/* ── Demographics ── */}
       <section style={{ marginBottom: '30px' }}>
-        <h2 style={sectionHead}>Demographics <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#6b7280' }}></span></h2>
-        <div style={grid2}>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
+          Demographics
+        </h2>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label style={labelStyle}>Gender</label>
-            <select value={resumeData.gender} onChange={e => set('gender', e.target.value)} style={selectStyle}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Gender</label>
+            <select 
+              value={resumeData.gender} 
+              onChange={e => set('gender', e.target.value)} 
+              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+            >
               <option value="">Select</option>
               {GENDER_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Race / Ethnicity</label>
-            <select value={resumeData.ethnicity} onChange={e => set('ethnicity', e.target.value)} style={selectStyle}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Race / Ethnicity</label>
+            <select 
+              value={resumeData.ethnicity} 
+              onChange={e => set('ethnicity', e.target.value)} 
+              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+            >
               <option value="">Select</option>
               {ETHNICITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Veteran Status</label>
-            <select value={resumeData.veteran} onChange={e => set('veteran', e.target.value)} style={selectStyle}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Veteran Status</label>
+            <select 
+              value={resumeData.veteran} 
+              onChange={e => set('veteran', e.target.value)} 
+              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+            >
               <option value="">Select</option>
               {VETERAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div>
-            <label style={labelStyle}>Disability Status</label>
-            <select value={resumeData.disability} onChange={e => set('disability', e.target.value)} style={selectStyle}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '12px' }}>Disability Status</label>
+            <select 
+              value={resumeData.disability} 
+              onChange={e => set('disability', e.target.value)} 
+              style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px', backgroundColor: 'white' }}
+            >
               <option value="">Select</option>
               {DISABILITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
             </select>
