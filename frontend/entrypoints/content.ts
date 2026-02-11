@@ -438,28 +438,56 @@ async function fetchAndUploadFile(element: HTMLInputElement, endpoint: string, f
     return false;
   }
 }
+async function handleAllFileInputs(cvAvailable: boolean) {
+  const fileInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="file"]'));
+  
+  let resumeUploaded = false;
+  let coverLetterUploaded = false;
 
-    async function handleAllFileInputs(cvAvailable: boolean) {
-      const fileInputs = document.querySelectorAll<HTMLInputElement>('input[type="file"]')
+  for (const fileInput of fileInputs) {
+    const label = findLabelForElement(fileInput).toLowerCase();
+    const id = fileInput.id?.toLowerCase() || '';
+    const name = fileInput.name?.toLowerCase() || '';
+    const combined = `${label} ${id} ${name}`;
 
-      for (const fileInput of fileInputs) {
-        const label = findLabelForElement(fileInput)
-        const id = fileInput.id?.toLowerCase() || ''
-        const name = fileInput.name?.toLowerCase() || ''
-        const accept = fileInput.accept?.toLowerCase() || ''
-        const combined = `${label} ${id} ${name} ${accept}`
+    const isResume = combined.includes('resume') || combined.includes('cv') || combined.includes('curriculum');
+    const isCoverLetter = combined.includes('cover') || combined.includes('letter');
 
-        const isCoverLetter = combined.includes('cover') || combined.includes('letter')
-        const isResumeOrCV = combined.includes('resume') || combined.includes('cv') || combined.includes('curriculum vitae')
-        const acceptsPdf = accept.includes('pdf') || accept.includes('.pdf') || accept === '' || accept.includes('*')
+    if (isResume) {
+      const success = await fetchAndUploadFile(fileInput, '/api/resume/view', 'resume.pdf');
+      if (success) resumeUploaded = true;
+    } else if (isCoverLetter && cvAvailable) {
+      const success = await fetchAndUploadFile(fileInput, '/api/cv/view', 'cover-letter.pdf');
+      if (success) coverLetterUploaded = true;
+    }
+  }
 
-        if (isCoverLetter && cvAvailable) {
-          await fetchAndUploadFile(fileInput, '/api/cv/view', 'cover-letter.pdf')
-        } else if (isResumeOrCV || (!isCoverLetter && acceptsPdf)) {
-          await fetchAndUploadFile(fileInput, '/api/resume/view', 'resume.pdf')
+ 
+  if (cvAvailable && resumeUploaded && !coverLetterUploaded) {
+    for (const fileInput of fileInputs) {
+      if (fileInput.files && fileInput.files.length > 0) continue;
+
+      const label = findLabelForElement(fileInput).toLowerCase();
+      const id = fileInput.id?.toLowerCase() || '';
+      const name = fileInput.name?.toLowerCase() || '';
+      const combined = `${label} ${id} ${name}`;
+
+      const isGenericField = combined.includes('other') || 
+                             combined.includes('additional') || 
+                             combined.includes('supporting') || 
+                             combined.includes('attachment') ||
+                             combined.includes('portfolio');
+
+      if (isGenericField) {
+        const success = await fetchAndUploadFile(fileInput, '/api/cv/view', 'cover-letter.pdf');
+        if (success) {
+          coverLetterUploaded = true;
+          break; 
         }
       }
     }
+  }
+}
 
     
 
