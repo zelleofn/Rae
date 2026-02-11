@@ -151,9 +151,9 @@ export default defineContentScript({
 
         { keywords: ['project name', 'projectname', 'project title'], type: 'projectName', confidence: 0.75 },
 
-        { keywords: ['linkedin', 'linkedin url', 'linkedin profile', 'linkedin link'], type: 'linkedin', confidence: 0.95 },
+        { keywords: ['linkedin', 'linkedin url', 'linkedin profile', 'linkedin '], type: 'linkedin', confidence: 0.95 },
         { keywords: ['github', 'github url', 'github profile', 'github link'], type: 'github', confidence: 0.95 },
-        { keywords: ['website', 'personal website', 'portfolio url', 'portfolio link', 'personal url', 'your website'], type: 'website', confidence: 0.75 },
+        { keywords: ['website', 'personal website', 'portfolio url', 'portfolio link', 'personal url', 'your website', 'link'], type: 'website', confidence: 0.75 },
         { keywords: ['other', 'additional', 'supporting document', 'attachment'], type: 'additionalFile', confidence: 0.7 },
         { keywords: ['salary', 'expected salary', 'desired salary', 'compensation', 'expected compensation', 'salary expectation'], type: 'salary', confidence: 0.8 },
         { keywords: ['years of experience', 'experience years', 'how many years', 'total experience', 'years experience'], type: 'yearsOfExperience', confidence: 0.85 },
