@@ -44,13 +44,29 @@ type ParsedResume struct {
 	PhoneNumber         string            `json:"phoneNumber"`
 	StreetAddress       string            `json:"streetAddress"`
 	City                string            `json:"city"`
+	ZipCode             string            `json:"zipCode"`
 	Location            string            `json:"location"`
 	Country             string            `json:"country"`
 	ProfessionalSummary string            `json:"professionalSummary"`
 	Skills              []string          `json:"skills"`
-	Experience          []ExperienceEntry `json:"experience"`
-	Projects            []ProjectEntry    `json:"projects"`
-	Education           []EducationEntry  `json:"education"`
+	Github              string            `json:"github"`
+	Linkedin            string            `json:"linkedin"`
+	Portfolio           string            `json:"portfolio"`
+	Availability        string            `json:"availability"`
+	Languages           []struct {
+		Language string `json:"language"`
+		Level    string `json:"level"`
+	} `json:"languages"`
+	SalaryAmount   string            `json:"salaryAmount"`
+	SalaryCurrency string            `json:"salaryCurrency"`
+	SalaryType     string            `json:"salaryType"`
+	Gender         string            `json:"gender"`
+	Ethnicity      string            `json:"ethnicity"`
+	Veteran        string            `json:"veteran"`
+	Disability     string            `json:"disability"`
+	Experience     []ExperienceEntry `json:"experience"`
+	Projects       []ProjectEntry    `json:"projects"`
+	Education      []EducationEntry  `json:"education"`
 }
 
 type ResumeUploadRequest struct {

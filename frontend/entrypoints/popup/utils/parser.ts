@@ -228,13 +228,55 @@ export interface ParsedResume {
   phoneNumber: string
   streetAddress: string
   city: string
+  zipCode: string
   location: string
   country: string
   professionalSummary: string
   skills: string[]
+  github: string
+  linkedin: string
+  portfolio: string
+  availability: string
+  languages: Array<{ language: string; level: string }>
+  salaryAmount: string
+  salaryCurrency: string
+  salaryType: string
+  gender: string
+  ethnicity: string
+  veteran: string
+  disability: string
   experience: ExperienceEntry[]
   projects: ProjectEntry[]
   education: EducationEntry[]
+}
+
+export function extractGithub(text: string): string {
+  const match = text.match(/github\.com\/([^\s,/"'<>]+)/i)
+  return match ? `https://github.com/${match[1]}` : ''
+}
+
+export function extractLinkedin(text: string): string {
+  const match = text.match(/linkedin\.com\/in\/([^\s,/"'<>]+)/i)
+  return match ? `https://linkedin.com/in/${match[1]}` : ''
+}
+
+export function extractPortfolio(text: string): string {
+  const portfolioRegex = /(?:portfolio|website|web)[\s\n:]*([^\s\n,]+)/i
+  const match = text.match(portfolioRegex)
+  if (match) {
+    const url = match[1].trim()
+    if (url.includes('.') && !url.includes('github.com') && !url.includes('linkedin.com')) {
+      return url.startsWith('http') ? url : `https://${url}`
+    }
+  }
+  const urlRegex = /https?:\/\/(?!github\.com|linkedin\.com)[^\s,<>"']+\.[^\s,<>"']+/i
+  const urlMatch = text.match(urlRegex)
+  return urlMatch ? urlMatch[0] : ''
+}
+
+export function extractZipCode(text: string): string {
+  const match = text.match(/(?:zip|postal|postcode)[\s\n:]*([A-Z0-9\s-]{3,10})/i)
+  return match ? match[1].trim() : ''
 }
 
 function parseExperienceEntry(experienceText: string): ExperienceEntry {
@@ -359,6 +401,8 @@ export function parseResume(text: string): ParsedResume {
         endYear: ''
       }]
   
+const github = extractGithub(text)
+
   return {
     firstName,
     lastName,
@@ -368,12 +412,25 @@ export function parseResume(text: string): ParsedResume {
     phoneNumber: extractPhoneNumber(phone),
     streetAddress,
     city,
+    zipCode: extractZipCode(text),
     location: location,
     country: country,
     professionalSummary: extractProfessionalSummary(text),
     skills: extractSkills(text),
+    github,
+    linkedin: extractLinkedin(text),
+    portfolio: extractPortfolio(text) || github,
+    availability: '',
+    languages: [],
+    salaryAmount: '',
+    salaryCurrency: 'USD',
+    salaryType: 'monthly',
+    gender: '',
+    ethnicity: '',
+    veteran: '',
+    disability: '',
     experience,
     projects,
     education,
   }
-} 
+}

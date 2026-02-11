@@ -1,12 +1,42 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import { resumeService, ParsedResume, ExperienceEntry, ProjectEntry, EducationEntry } from './resumeService'
+import { resumeService, ParsedResume, ExperienceEntry, ProjectEntry, EducationEntry, LanguageEntry } from './resumeService'
 import { getAuthToken } from './storageHelper'
 
 
+const CURRENCIES = ['USD','EUR','GBP','CAD','AUD','ZAR','INR','NGN','GHS','KES','AED','SGD','JPY','CNY','BRL','MXN','TTD']
+const LANGUAGE_LEVELS = ['Basic','Conversational','Professional','Fluent','Native']
+const AVAILABILITY_OPTIONS = ['Immediately','1 Week','2 Weeks','1 Month','2 Months','3 Months','Open to Discussion']
+const GENDER_OPTIONS = ['Prefer not to say','Male','Female','Non-binary','Other']
+const ETHNICITY_OPTIONS = ['Prefer not to say','White / Caucasian','Black / African American','Hispanic / Latino','Asian','Middle Eastern','Native American / Indigenous','Pacific Islander','Mixed / Multiracial','Other']
+const VETERAN_OPTIONS = ['Prefer not to say','Not a Veteran','Veteran','Active Duty','Reserve / National Guard']
+const DISABILITY_OPTIONS = ['Prefer not to say','No','Yes']
+
+const inputStyle = {
+  width: '100%',
+  padding: '8px',
+  border: '1px solid #d1d5db',
+  borderRadius: '4px',
+  fontSize: '14px',
+  boxSizing: 'border-box' as const,
+}
+
+const labelStyle = {
+  display: 'block',
+  marginBottom: '5px',
+  fontWeight: 'bold' as const,
+  fontSize: '14px',
+}
+
+const selectStyle = {
+  ...inputStyle,
+  backgroundColor: 'white',
+  cursor: 'pointer',
+}
+
 const SidePanel = () => {
   const [resumeData, setResumeData] = useState<ParsedResume | null>(null)
-  const [resumeId, setResumeId] = useState<number | null>(null);
+  const [resumeId, setResumeId] = useState<number | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -16,18 +46,27 @@ const SidePanel = () => {
     const loadResume = async () => {
       try {
         const token = await getAuthToken()
-
-        if (!token) {
-          setError('Not authenticated. Please log in.')
-          setIsLoading(false)
-          return
-        }
-
+        if (!token) { setError('Not authenticated. Please log in.'); setIsLoading(false); return }
         const data = await resumeService.getUserResume(token)
-        
         if (data) {
           setResumeId(data.id)
-          setResumeData(data.parsed_data)
+          const pd = data.parsed_data
+          setResumeData({
+            ...pd,
+            zipCode: pd.zipCode || '',
+            github: pd.github || '',
+            linkedin: pd.linkedin || '',
+            portfolio: pd.portfolio || '',
+            availability: pd.availability || '',
+            languages: pd.languages || [],
+            salaryAmount: pd.salaryAmount || '',
+            salaryCurrency: pd.salaryCurrency || 'USD',
+            salaryType: pd.salaryType || 'monthly',
+            gender: pd.gender || '',
+            ethnicity: pd.ethnicity || '',
+            veteran: pd.veteran || '',
+            disability: pd.disability || '',
+          })
         } else {
           setError('No resume found. Please upload a resume first.')
         }
@@ -37,9 +76,14 @@ const SidePanel = () => {
         setIsLoading(false)
       }
     }
-
     loadResume()
   }, [])
+
+  const set = (field: keyof ParsedResume, value: any) => {
+    if (!resumeData) return
+    setResumeData({ ...resumeData, [field]: value })
+    setSaveSuccess(false)
+  }
 
   const handleInputChange = (field: keyof ParsedResume, value: any) => {
     if (!resumeData) return
@@ -144,21 +188,20 @@ const SidePanel = () => {
     setSaveSuccess(false)
   }
 
-  const handleSave = async () => {
+
+  const handleLanguageChange = (i: number, field: keyof LanguageEntry, v: string) => {
     if (!resumeData) return
+    const arr = [...resumeData.languages]; arr[i] = { ...arr[i], [field]: v }; set('languages', arr)
+  }
+  const handleAddLanguage = () => { if (!resumeData) return; set('languages', [...resumeData.languages, { language: '', level: 'Conversational' }]) }
+  const handleRemoveLanguage = (i: number) => { if (!resumeData) return; set('languages', resumeData.languages.filter((_, x) => x !== i)) }
 
-    setIsSaving(true)
-    setError(null)
-    setSaveSuccess(false)
-
+const handleSave = async () => {
+    if (!resumeData) return
+    setIsSaving(true); setError(null); setSaveSuccess(false)
     try {
       const token = await getAuthToken()
-
-      if (!token) {
-        setError('Not authenticated')
-        return
-      }
-
+      if (!token) { setError('Not authenticated'); return }
       await resumeService.updateResume(token, resumeData)
       setSaveSuccess(true)
     } catch (err) {
@@ -192,6 +235,12 @@ const SidePanel = () => {
       </div>
     )
   }
+
+   const sectionHead: React.CSSProperties = { fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }
+  const card: React.CSSProperties = { marginBottom: '15px', padding: '15px', backgroundColor: '#f9fafb', borderRadius: '4px' }
+  const grid2: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }
+  const removeBtn: React.CSSProperties = { padding: '6px 12px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }
+  const addBtn: React.CSSProperties = { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', marginTop: '10px' }
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif', maxWidth: '800px' }}>
@@ -383,6 +432,11 @@ const SidePanel = () => {
             </div>
 
             <div>
+              <label style={labelStyle}>Zip / Postal Code</label>
+              <input type="text" value={resumeData.zipCode} onChange={e => set('zipCode', e.target.value)} style={inputStyle} />
+            </div>
+
+            <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
                 Country
               </label>
@@ -438,6 +492,19 @@ const SidePanel = () => {
             fontFamily: 'Arial, sans-serif'
           }}
         />
+      </section>
+
+     
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={sectionHead}>Websites & Links</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          {(['linkedin','github','portfolio'] as const).map((field, i) => (
+            <div key={field}>
+              <label style={labelStyle}>{['LinkedIn URL','GitHub URL','Portfolio URL'][i]}</label>
+              <input type="url" value={(resumeData as any)[field]} onChange={e => set(field, e.target.value)} placeholder={['https://linkedin.com/in/username','https://github.com/username','https://yoursite.com'][i]} style={inputStyle} />
+            </div>
+          ))}
+        </div>
       </section>
 
       <section style={{ marginBottom: '30px' }}>
@@ -865,6 +932,95 @@ const SidePanel = () => {
         >
           Add Education
         </button>
+      </section>
+
+      {/* ── Languages ── */}
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={sectionHead}>Languages</h2>
+        {resumeData.languages.map((lang, i) => (
+          <div key={i} style={{ display: 'flex', gap: '10px', marginBottom: '10px', alignItems: 'flex-end' }}>
+            <div style={{ flex: 2 }}>
+              <label style={{ ...labelStyle, fontSize: '12px' }}>Language</label>
+              <input type="text" value={lang.language} onChange={e => handleLanguageChange(i,'language',e.target.value)} style={{ ...inputStyle, fontSize: '12px' }} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={{ ...labelStyle, fontSize: '12px' }}>Level</label>
+              <select value={lang.level} onChange={e => handleLanguageChange(i,'level',e.target.value)} style={{ ...selectStyle, fontSize: '12px' }}>
+                {LANGUAGE_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+            </div>
+            <button onClick={() => handleRemoveLanguage(i)} style={{ ...removeBtn, marginBottom: '1px' }}>Remove</button>
+          </div>
+        ))}
+        <button onClick={handleAddLanguage} style={addBtn}>Add Language</button>
+      </section>
+
+      {/* ── Availability ── */}
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={sectionHead}>Availability / Start Date</h2>
+        <select value={resumeData.availability} onChange={e => set('availability', e.target.value)} style={selectStyle}>
+          <option value="">Select availability</option>
+          {AVAILABILITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </section>
+
+      {/* ── Salary Expectations ── */}
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={sectionHead}>Salary Expectations</h2>
+        <div style={grid2}>
+          <div>
+            <label style={labelStyle}>Currency</label>
+            <select value={resumeData.salaryCurrency} onChange={e => set('salaryCurrency', e.target.value)} style={selectStyle}>
+              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Type</label>
+            <select value={resumeData.salaryType} onChange={e => set('salaryType', e.target.value)} style={selectStyle}>
+              <option value="monthly">Monthly</option>
+              <option value="hourly">Hourly</option>
+            </select>
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={labelStyle}>Amount</label>
+            <input type="number" min="0" value={resumeData.salaryAmount} onChange={e => set('salaryAmount', e.target.value)} placeholder="e.g. 5000" style={inputStyle} />
+          </div>
+        </div>
+      </section>
+
+      {/* ── Demographics ── */}
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={sectionHead}>Demographics <span style={{ fontSize: '13px', fontWeight: 'normal', color: '#6b7280' }}></span></h2>
+        <div style={grid2}>
+          <div>
+            <label style={labelStyle}>Gender</label>
+            <select value={resumeData.gender} onChange={e => set('gender', e.target.value)} style={selectStyle}>
+              <option value="">Select</option>
+              {GENDER_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Race / Ethnicity</label>
+            <select value={resumeData.ethnicity} onChange={e => set('ethnicity', e.target.value)} style={selectStyle}>
+              <option value="">Select</option>
+              {ETHNICITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Veteran Status</label>
+            <select value={resumeData.veteran} onChange={e => set('veteran', e.target.value)} style={selectStyle}>
+              <option value="">Select</option>
+              {VETERAN_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={labelStyle}>Disability Status</label>
+            <select value={resumeData.disability} onChange={e => set('disability', e.target.value)} style={selectStyle}>
+              <option value="">Select</option>
+              {DISABILITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        </div>
       </section>
 
       <div style={{ 

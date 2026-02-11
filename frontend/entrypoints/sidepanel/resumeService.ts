@@ -21,6 +21,11 @@ export interface EducationEntry {
   endYear: string
 }
 
+export interface LanguageEntry {
+  language: string
+  level: string
+}
+
 export interface ParsedResume {
   firstName: string
   lastName: string
@@ -30,10 +35,24 @@ export interface ParsedResume {
   phoneNumber: string
   streetAddress: string
   city: string
+  zipCode: string
   location: string
   country: string
+  state: string;
   professionalSummary: string
   skills: string[]
+  github: string
+  linkedin: string
+  portfolio: string
+  availability: string
+  languages: LanguageEntry[]
+  salaryAmount: string
+  salaryCurrency: string
+  salaryType: string
+  gender: string
+  ethnicity: string
+  veteran: string
+  disability: string
   experience: ExperienceEntry[]
   projects: ProjectEntry[]
   education: EducationEntry[]
@@ -90,7 +109,7 @@ export const resumeService = {
     }
   },
 
-async updateResume(token: string, parsedData: ParsedResume): Promise<void> {
+  async updateResume(token: string, parsedData: ParsedResume): Promise<void> {
     const response = await fetch(`${API_URL}/api/resume/parsed`, {
       method: 'PATCH',
       headers: {
@@ -98,13 +117,13 @@ async updateResume(token: string, parsedData: ParsedResume): Promise<void> {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        parsed_data: parsedData, 
+        parsed_data: parsedData,
       }),
     })
 
     if (!response.ok) {
-      const data = await response.json();
-      throw new Error(data.error || 'Failed to update resume');
+      const data = await response.json()
+      throw new Error(data.error || 'Failed to update resume')
     }
   },
 }

@@ -36,6 +36,9 @@ export default defineContentScript({
         startYear: string
         endYear: string
       }>
+      github: string;    
+      linkedin: string;  
+      portfolio: string;
     }
 
     interface FieldMapping {
@@ -551,9 +554,9 @@ async function handleAllFileInputs(cvAvailable: boolean) {
         highestEdu: latestEdu?.fieldOfStudy || '', 
         yearsOfExperience: totalExpYears,
         projectName:          latestProject?.projectName || '',
-        linkedin:             '',
-        github:               '',
-        website:              latestProject?.link || '',
+        linkedin:             resumeData.linkedin || '',
+        github:               resumeData.github || '',
+        website:              resumeData.portfolio || latestProject?.link || '',
         salary:               '',
         workAuth:             'Yes',
         relocation:           'Yes',
