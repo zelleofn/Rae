@@ -155,7 +155,7 @@ export default defineContentScript({
         { keywords: ['github', 'github url', 'github profile', 'github link'], type: 'github', confidence: 0.95 },
         { keywords: ['website', 'personal website', 'portfolio url', 'portfolio link', 'personal url', 'your website', 'link'], type: 'website', confidence: 0.75 },
         { keywords: ['other', 'additional', 'supporting document', 'attachment'], type: 'additionalFile', confidence: 0.7 },
-        { keywords: ['salary', 'expected salary', 'desired salary', 'compensation', 'expected compensation', 'salary expectation'], type: 'salary', confidence: 0.8 },
+        { keywords: ['salary', 'expected salary', 'desired salary', 'compensation', 'expected compensation', 'salary expectation', 'rate', 'base salary'], type: 'salary', confidence: 0.85 },
         { keywords: ['years of experience', 'experience years', 'how many years', 'total experience', 'years experience'], type: 'yearsOfExperience', confidence: 0.85 },
         { keywords: ['work authorization', 'work authorisation', 'authorized to work', 'visa status', 'right to work', 'work permit', 'eligible to work'], type: 'workAuth', confidence: 0.85 },
         { keywords: ['willing to relocate', 'open to relocate', 'relocation', 'relocate'], type: 'relocation', confidence: 0.8 },
