@@ -229,6 +229,7 @@ export interface ParsedResume {
   streetAddress: string
   city: string
   zipCode: string
+  state: string
   location: string
   country: string
   professionalSummary: string
@@ -276,6 +277,12 @@ export function extractPortfolio(text: string): string {
 
 export function extractZipCode(text: string): string {
   const match = text.match(/(?:zip|postal|postcode)[\s\n:]*([A-Z0-9\s-]{3,10})/i)
+  return match ? match[1].trim() : ''
+}
+
+
+export function extractState(text: string): string {
+  const match = text.match(/(?:state|province|region)[\s\n:]*([^\n,]+)/i)
   return match ? match[1].trim() : ''
 }
 
@@ -413,6 +420,7 @@ const github = extractGithub(text)
     streetAddress,
     city,
     zipCode: extractZipCode(text),
+    state: extractState(text),
     location: location,
     country: country,
     professionalSummary: extractProfessionalSummary(text),

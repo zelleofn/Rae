@@ -54,6 +54,7 @@ const SidePanel = () => {
           setResumeData({
             ...pd,
             zipCode: pd.zipCode || '',
+            state: pd.state || '',
             github: pd.github || '',
             linkedin: pd.linkedin || '',
             portfolio: pd.portfolio || '',
@@ -434,6 +435,10 @@ const handleSave = async () => {
             <div>
               <label style={labelStyle}>Zip / Postal Code</label>
               <input type="text" value={resumeData.zipCode} onChange={e => set('zipCode', e.target.value)} style={inputStyle} />
+            </div>
+            <div>
+              <label style={labelStyle}>State / Province</label>
+              <input type="text" value={resumeData.state} onChange={e => set('state', e.target.value)} style={inputStyle} />
             </div>
 
             <div>

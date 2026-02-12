@@ -114,6 +114,14 @@ export default function ResumeUpload() {
 
       setUploadSuccess(true)
       setHasResume(true)
+      try {
+        const windowInfo = await chrome.windows.getCurrent()
+        if (windowInfo.id) {
+          await (chrome.sidePanel as any).open({ windowId: windowInfo.id })
+        }
+      } catch (e) {
+        console.error('[RAE] Failed to open sidepanel:', e)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process resume')
     } finally {

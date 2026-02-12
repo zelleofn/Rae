@@ -45,6 +45,7 @@ type ParsedResume struct {
 	StreetAddress       string            `json:"streetAddress"`
 	City                string            `json:"city"`
 	ZipCode             string            `json:"zipCode"`
+	State               string            `json:"state"`
 	Location            string            `json:"location"`
 	Country             string            `json:"country"`
 	ProfessionalSummary string            `json:"professionalSummary"`
