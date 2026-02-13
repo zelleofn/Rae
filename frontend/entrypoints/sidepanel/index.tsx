@@ -11,6 +11,7 @@ const GENDER_OPTIONS = ['Prefer not to say','Male','Female','Non-binary','Other'
 const ETHNICITY_OPTIONS = ['Prefer not to say','White / Caucasian','Black / African American','Hispanic / Latino','Asian','Middle Eastern','Native American / Indigenous','Pacific Islander','Mixed / Multiracial','Other']
 const VETERAN_OPTIONS = ['Prefer not to say','Not a Veteran','Veteran','Active Duty','Reserve / National Guard']
 const DISABILITY_OPTIONS = ['Prefer not to say','No','Yes']
+const EMPLOYMENT_TYPE_OPTIONS = ['Full Time', 'Part Time', 'Internship', 'Contract / Contractual', 'Freelance']
 
 const inputStyle = {
   width: '100%',
@@ -67,6 +68,7 @@ const SidePanel = () => {
             ethnicity: pd.ethnicity || '',
             veteran: pd.veteran || '',
             disability: pd.disability || '',
+            employmentType: pd.employmentType || '',
           })
         } else {
           setError('No resume found. Please upload a resume first.')
@@ -990,6 +992,21 @@ const handleSave = async () => {
         >
           <option value="">Select availability</option>
           {AVAILABILITY_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </section>
+
+       {/* ── Employment Type ── */}
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
+          Employment Type
+        </h2>
+        <select
+          value={resumeData.employmentType}
+          onChange={e => set('employmentType', e.target.value)}
+          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px', backgroundColor: 'white' }}
+        >
+          <option value="">Select employment type</option>
+          {EMPLOYMENT_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
       </section>
 

@@ -65,6 +65,7 @@ type ParsedResume struct {
 	Ethnicity      string            `json:"ethnicity"`
 	Veteran        string            `json:"veteran"`
 	Disability     string            `json:"disability"`
+	EmploymentType string            `json:"employmentType"`
 	Experience     []ExperienceEntry `json:"experience"`
 	Projects       []ProjectEntry    `json:"projects"`
 	Education      []EducationEntry  `json:"education"`

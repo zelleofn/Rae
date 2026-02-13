@@ -113,12 +113,18 @@ export default function App() {
         cvAvailable: cvCheck.has_cv
       })
 
-      if (response.success) {
+      if (response?.success) {
         setAutofillMessage({
           type: 'success',
           text: `Filled ${response.filledCount} fields!`
         })
         setTimeout(() => setAutofillMessage(null), 3000)
+      } else {
+        setAutofillMessage({
+          type: 'error',
+          text: 'Page not ready — refresh the tab and try again.'
+        })
+        setTimeout(() => setAutofillMessage(null), 5000)
       }
     } catch (err) {
       setAutofillMessage({

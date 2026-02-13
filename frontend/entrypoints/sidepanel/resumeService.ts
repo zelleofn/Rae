@@ -53,6 +53,7 @@ export interface ParsedResume {
   ethnicity: string
   veteran: string
   disability: string
+  employmentType: string
   experience: ExperienceEntry[]
   projects: ProjectEntry[]
   education: EducationEntry[]

@@ -22,6 +22,7 @@ export default defineContentScript({
       linkedin: string
       portfolio: string
       availability: string
+      employmentType: string
       languages: Array<{ language: string; level: string }>
       salaryAmount: string
       salaryCurrency: string
@@ -31,13 +32,8 @@ export default defineContentScript({
       veteran: string
       disability: string
       experience: Array<{
-        jobTitle: string
-        companyName: string
-        description: string
-        startMonth: string
-        startYear: string
-        endMonth: string
-        endYear: string
+        jobTitle: string; companyName: string; description: string
+        startMonth: string; startYear: string; endMonth: string; endYear: string
       }>
       projects: Array<{ projectName: string; description: string; link: string }>
       education: Array<{ schoolName: string; fieldOfStudy: string; startYear: string; endYear: string }>
@@ -57,6 +53,44 @@ export default defineContentScript({
     }
 
 
+    function convertSalary(amount: string, fromType: string, toType: string): string {
+      const num = parseFloat(amount)
+      if (!num || !fromType || !toType || fromType === toType) return amount
+      const toMonthly: Record<string, number> = { hourly: 160, monthly: 1, yearly: 1/12 }
+      const fromMonthly: Record<string, number> = { hourly: 1/160, monthly: 1, yearly: 12 }
+      const monthly = num * (toMonthly[fromType] || 1)
+      const result = monthly * (fromMonthly[toType] || 1)
+      return String(Math.round(result))
+    }
+
+    function detectSalaryTypeFromLabel(label: string): string | null {
+      if (label.includes('hour') || label.includes('/hr') || label.includes('p/h')) return 'hourly'
+      if (label.includes('month') || label.includes('/mo') || label.includes('p/m')) return 'monthly'
+      if (label.includes('year') || label.includes('annual') || label.includes('/yr') || label.includes('p/a') || label.includes('per annum')) return 'yearly'
+      return null
+    }
+
+
+    function hasDegreeType(education: ResumeData['education'], degreeKeyword: string): boolean {
+      const kw = degreeKeyword.toLowerCase()
+      return education.some(edu => {
+        const field = (edu.fieldOfStudy || '').toLowerCase()
+        const school = (edu.schoolName || '').toLowerCase()
+        return field.includes(kw) || school.includes(kw)
+      })
+    }
+
+    function getHighestDegree(education: ResumeData['education']): string {
+      const order = ['phd','doctorate','doctor','master','msc','mba','bachelor','bsc','ba','associate','diploma','certificate']
+      for (const lvl of order) {
+        if (education.some(e => (e.fieldOfStudy || '').toLowerCase().includes(lvl) || (e.schoolName || '').toLowerCase().includes(lvl))) {
+          return lvl
+        }
+      }
+      return education.length > 0 ? 'yes' : 'no'
+    }
+
+
     function findLabelForElement(element: HTMLElement): string {
       const sources: string[] = []
       if (element.id) {
@@ -68,9 +102,7 @@ export default defineContentScript({
       const prev = element.previousElementSibling
       if (prev && ['LABEL','SPAN','P','DIV'].includes(prev.tagName)) sources.push(prev.textContent || '')
       const parent = element.parentElement
-      if (parent) {
-        parent.querySelectorAll('label, span[class*="label"], div[class*="label"], p').forEach(el => sources.push(el.textContent || ''))
-      }
+      if (parent) parent.querySelectorAll('label, span[class*="label"], div[class*="label"], p').forEach(el => sources.push(el.textContent || ''))
       const wrapper = element.closest('div, fieldset, li, section')
       if (wrapper) {
         const wl = wrapper.querySelector('label, legend, span[class*="label"], div[class*="label"]')
@@ -95,41 +127,46 @@ export default defineContentScript({
         { keywords: ['firstname','first-name','first_name','fname','given-name','givenname','forename','first name','given name'], type: 'firstName', confidence: 0.95 },
         { keywords: ['lastname','last-name','last_name','lname','surname','family-name','familyname','family name','last name'], type: 'lastName', confidence: 0.95 },
         { keywords: ['email','e-mail','emailaddress','email address','email-address','mail'], type: 'email', confidence: 0.95 },
-        { keywords: ['phone','telephone','mobile','phonenumber','phone-number','phone number','cell phone','contact number','tel'], type: 'phone', confidence: 0.9 },
-        { keywords: ['countrycode','country-code','country_code','dialcode','dial-code','dial code','calling code','isd'], type: 'countryCode', confidence: 0.9 },
+        { keywords: ['mobile number','mobile phone','mobile-number','mobilenumber','cell number'], type: 'phone', confidence: 0.95 },
+        { keywords: ['phone','telephone','phonenumber','phone-number','phone number','cell phone','contact number','tel'], type: 'phone', confidence: 0.9 },
+        { keywords: ['whatsapp','whats app','whatsapp number'], type: 'whatsapp', confidence: 0.95 },
+        { keywords: ['countrycode','country-code','country_code','dialcode','dial-code','dial code','calling code','isd','phone code','mobile code'], type: 'countryCode', confidence: 0.9 },
         { keywords: ['phone type','phonetype','number type','type of phone','contact type','phone device type'], type: 'phoneType', confidence: 0.85 },
-        { keywords: ['streetaddress','street-address','address1','address-line-1','addressline1','address line 1','addr1','mailing address','street','address'], type: 'streetAddress', confidence: 0.85 },
+        { keywords: ['full postal address','postal address','full address','complete address','mailing address'], type: 'fullAddress', confidence: 0.95 },
+        { keywords: ['streetaddress','street-address','address1','address-line-1','addressline1','address line 1','addr1','street address'], type: 'streetAddress', confidence: 0.85 },
         { keywords: ['city','town','suburb','municipality'], type: 'city', confidence: 0.9 },
         { keywords: ['zipcode','zip-code','zip','postalcode','postal-code','postcode','postal code'], type: 'zipCode', confidence: 0.85 },
         { keywords: ['state','province','region','county'], type: 'state', confidence: 0.75 },
         { keywords: ['country','nation','country of residence','country of origin','citizenship','nationality','home country','location country'], type: 'country', confidence: 0.9 },
-        { keywords: ['location','residence','based in','current location','preferred location','work location','where are you located'], type: 'location', confidence: 0.8 },
-        { keywords: ['summary','professional summary','about me','about yourself','bio','profile','objective','introduction','describe yourself','tell us about yourself','personal statement'], type: 'professionalSummary', confidence: 0.75 },
-        { keywords: ['cover letter','covering letter','motivation letter','motivational letter','letter of motivation','why do you want','why are you interested'], type: 'coverLetter', confidence: 0.85 },
+        { keywords: ['location','residence','based in','current location','preferred location','work location'], type: 'location', confidence: 0.8 },
+        { keywords: ['summary','professional summary','about me','bio','profile','objective','describe yourself','tell us about yourself','personal statement'], type: 'professionalSummary', confidence: 0.75 },
+        { keywords: ['cover letter','covering letter','motivation letter','motivational letter','letter of motivation','why do you want','why are you interested','why us','why this role'], type: 'coverLetter', confidence: 0.85 },
         { keywords: ['skill','skills','expertise','competencies','technologies','tech stack','tools','technical skills','key skills'], type: 'skills', confidence: 0.75 },
         { keywords: ['jobtitle','job-title','job title','currenttitle','current title','current job title','desired title'], type: 'jobTitle', confidence: 0.9 },
-        { keywords: ['title'], type: 'jobTitle', confidence: 0.7 },
         { keywords: ['industry'], type: 'industry', confidence: 0.75 },
         { keywords: ['company','employer','organization','organisation','current company','current employer','workplace'], type: 'companyName', confidence: 0.85 },
         { keywords: ['start month','startmonth','start-month','from month'], type: 'expStartMonth', confidence: 0.9 },
         { keywords: ['start year','startyear','start-year','from year','year started'], type: 'expStartYear', confidence: 0.9 },
         { keywords: ['end month','endmonth','end-month','to month'], type: 'expEndMonth', confidence: 0.9 },
         { keywords: ['end year','endyear','end-year','to year','year ended','year finished'], type: 'expEndYear', confidence: 0.9 },
-        { keywords: ['highest education','level of education','education level','degree level','highest degree'], type: 'highestEdu', confidence: 0.9 },
+        { keywords: ['highest education','level of education','education level','degree level','highest degree','highest qualification'], type: 'highestEdu', confidence: 0.9 },
+        { keywords: ['do you have a degree','do you hold a degree','have a degree','have a bachelor','have a master','have a phd','highest level of education'], type: 'hasDegree', confidence: 0.9 },
         { keywords: ['school','university','college','institution','alma mater'], type: 'schoolName', confidence: 0.85 },
         { keywords: ['degree','major','field of study','fieldofstudy','discipline','qualification','program','area of study'], type: 'fieldOfStudy', confidence: 0.8 },
         { keywords: ['graduation year','grad year','year of graduation','completed year'], type: 'eduEndYear', confidence: 0.85 },
         { keywords: ['enrollment year','enrolment year','year enrolled'], type: 'eduStartYear', confidence: 0.8 },
         { keywords: ['project name','projectname','project title'], type: 'projectName', confidence: 0.75 },
-        { keywords: ['linkedin','linkedin url','linkedin profile'], type: 'linkedin', confidence: 0.95 },
+        { keywords: ['linkedin.com','linkedin url','linkedin profile','linkedin link','linkedin profile url'], type: 'linkedin', confidence: 0.98 },
+        { keywords: ['linkedin'], type: 'linkedin', confidence: 0.9 },
         { keywords: ['github','github url','github profile'], type: 'github', confidence: 0.95 },
-        { keywords: ['website','personal website','portfolio url','portfolio link','personal url','your website'], type: 'website', confidence: 0.75 },
-        { keywords: ['salary','expected salary','desired salary','compensation','salary expectation','base salary','rate'], type: 'salary', confidence: 0.85 },
+        { keywords: ['website','personal website','portfolio url','portfolio link','personal url','your website','portfolio'], type: 'website', confidence: 0.75 },
+        { keywords: ['salary','expected salary','desired salary','compensation','salary expectation','base salary','rate','remuneration'], type: 'salary', confidence: 0.85 },
         { keywords: ['currency','salary currency','pay currency'], type: 'salaryCurrency', confidence: 0.8 },
         { keywords: ['salary type','pay type','pay period','compensation type'], type: 'salaryType', confidence: 0.8 },
         { keywords: ['language','languages spoken','language proficiency'], type: 'language', confidence: 0.75 },
         { keywords: ['language level','proficiency','fluency'], type: 'languageLevel', confidence: 0.75 },
         { keywords: ['availability','start date','available from','when can you start','notice period'], type: 'availability', confidence: 0.85 },
+        { keywords: ['employment type','job type','work type','position type','contract type','full time','part time','part-time','full-time'], type: 'employmentType', confidence: 0.85 },
         { keywords: ['years of experience','experience years','how many years','total experience','years experience'], type: 'yearsOfExperience', confidence: 0.85 },
         { keywords: ['work authorization','authorized to work','visa status','right to work','work permit','eligible to work'], type: 'workAuth', confidence: 0.85 },
         { keywords: ['willing to relocate','open to relocate','relocation','relocate'], type: 'relocation', confidence: 0.8 },
@@ -147,7 +184,6 @@ export default defineContentScript({
               if (combined.includes('first') || combined.includes('last') || combined.includes('full') || combined.includes('company') || combined.includes('school')) continue
             }
             if (keyword === 'title') {
-              if (combined.includes('job') || combined.includes('current') || combined.includes('desired')) return { type: 'jobTitle', confidence: 0.9 }
               if (combined.includes('mr') || combined.includes('ms') || combined.includes('dr') || combined.includes('salutation')) continue
             }
             return { type: pattern.type, confidence: pattern.confidence }
@@ -155,10 +191,8 @@ export default defineContentScript({
         }
       }
 
-      if (/\bname\b/.test(combined)) {
-        if (!combined.includes('first') && !combined.includes('last') && !combined.includes('company') && !combined.includes('school') && !combined.includes('file')) {
-          return { type: 'fullName', confidence: 0.7 }
-        }
+      if (/\bname\b/.test(combined) && !combined.includes('first') && !combined.includes('last') && !combined.includes('company') && !combined.includes('school') && !combined.includes('file')) {
+        return { type: 'fullName', confidence: 0.7 }
       }
 
       return { type: 'unknown', confidence: 0 }
@@ -168,7 +202,7 @@ export default defineContentScript({
       const fields: FieldMapping[] = []
       document.querySelectorAll(
         'input:not([type="submit"]):not([type="button"]):not([type="hidden"]):not([type="file"]):not([type="image"]):not([type="reset"]):not([type="checkbox"]), textarea, select'
-      ).forEach((element) => {
+      ).forEach(element => {
         if (!(element instanceof HTMLInputElement) && !(element instanceof HTMLTextAreaElement) && !(element instanceof HTMLSelectElement)) return
         const { type, confidence } = detectFieldType(element)
         if (confidence > 0.5) fields.push({ element, type, confidence })
@@ -194,12 +228,10 @@ export default defineContentScript({
     }
 
 
-    function fillDateInput(element: HTMLInputElement, year: string, month?: string, day?: string) {
+    function fillDateInput(element: HTMLInputElement, year: string, month?: string) {
       if (!year) return
       const m = (month || '01').padStart(2, '0')
-      const d = (day || '01').padStart(2, '0')
-      const value = `${year}-${m}-${d}`
-      fillField(element, value)
+      fillField(element, `${year}-${m}-01`)
     }
 
 
@@ -226,16 +258,44 @@ export default defineContentScript({
       const monthNum = monthValue.padStart(2, '0')
       const options = Array.from(element.options)
       const match = options.find(o => {
-        const t = o.text.toLowerCase().trim()
-        const v = o.value.toLowerCase().trim()
+        const t = o.text.toLowerCase().trim(); const v = o.value.toLowerCase().trim()
         return t === monthName || v === monthValue || v === monthNum || t.startsWith(monthName.substring(0, 3))
       })
-      if (match) {
-        element.value = match.value
-        element.dispatchEvent(new Event('change', { bubbles: true }))
-        element.dispatchEvent(new Event('input', { bubbles: true }))
-        return true
+      if (match) { element.value = match.value; element.dispatchEvent(new Event('change', { bubbles: true })); return true }
+      return false
+    }
+
+    function fillStateDropdown(element: HTMLSelectElement, stateValue: string): boolean {
+      if (!stateValue) return false
+      if (fillDropdown(element, stateValue)) return true
+      const abbr = stateValue.substring(0, 2).toLowerCase()
+      const match = Array.from(element.options).find(o => o.value.toLowerCase() === abbr || o.text.toLowerCase().startsWith(abbr))
+      if (match) { element.value = match.value; element.dispatchEvent(new Event('change', { bubbles: true })); return true }
+      return false
+    }
+
+    function fillCountryDropdown(element: HTMLSelectElement, country: string): boolean {
+      if (!country) return false
+      if (fillDropdown(element, country)) return true
+      const iso = country.length === 2 ? country.toLowerCase() : country.substring(0, 2).toLowerCase()
+      const match = Array.from(element.options).find(o => o.value.toLowerCase() === iso)
+      if (match) { element.value = match.value; element.dispatchEvent(new Event('change', { bubbles: true })); return true }
+      return false
+    }
+
+    function fillCountryCodeDropdown(element: HTMLSelectElement, countryCode: string, country: string): boolean {
+      if (!countryCode && !country) return false
+      const options = Array.from(element.options)
+      const codeSearch = (countryCode || '').replace('+', '')
+
+      let match = options.find(o => {
+        const t = o.text.toLowerCase(); const v = o.value.toLowerCase()
+        return v === countryCode || v === `+${codeSearch}` || v === codeSearch || t.includes(`+${codeSearch}`)
+      })
+      if (!match && country) {
+        match = options.find(o => o.text.toLowerCase().includes(country.toLowerCase()) || o.value.toLowerCase().includes(country.toLowerCase().substring(0, 3)))
       }
+      if (match) { element.value = match.value; element.dispatchEvent(new Event('change', { bubbles: true })); return true }
       return false
     }
 
@@ -271,6 +331,31 @@ export default defineContentScript({
       return false
     }
 
+    function fillSalaryDropdown(element: HTMLSelectElement, amount: string, fromType: string): boolean {
+      const options = Array.from(element.options)
+      const detected = detectSalaryTypeFromLabel(findLabelForElement(element))
+      if (detected && detected !== fromType) {
+        return fillDropdown(element, convertSalary(amount, fromType, detected))
+      }
+      return fillDropdown(element, amount)
+    }
+
+    function fillEmploymentTypeDropdown(element: HTMLSelectElement, value: string): boolean {
+      if (!value) return false
+      const val = value.toLowerCase()
+      const options = Array.from(element.options)
+      const match = options.find(o => {
+        const t = o.text.toLowerCase(); const v = o.value.toLowerCase()
+        return t.includes(val) || v.includes(val) ||
+          (val.includes('full') && (t.includes('full') || v.includes('full'))) ||
+          (val.includes('part') && (t.includes('part') || v.includes('part'))) ||
+          (val.includes('intern') && (t.includes('intern') || v.includes('intern'))) ||
+          (val.includes('contract') && (t.includes('contract') || v.includes('contract')))
+      })
+      if (match) { element.value = match.value; element.dispatchEvent(new Event('change', { bubbles: true })); return true }
+      return false
+    }
+
 
     function fillRadioGroup(name: string, value: string) {
       if (!name || !value) return
@@ -292,19 +377,45 @@ export default defineContentScript({
 
     function handleRadioButtons(resumeData: ResumeData) {
       const groups = new Map<string, string>()
+
       document.querySelectorAll<HTMLInputElement>('input[type="radio"]').forEach(radio => {
         if (!radio.name || groups.has(radio.name)) return
         const lbl = findLabelForElement(radio).toLowerCase()
         const nm = radio.name.toLowerCase()
         const combined = `${lbl} ${nm}`
-        if (combined.includes('phone type') || combined.includes('contact type')) groups.set(radio.name, 'home')
-        else if (combined.includes('work auth') || combined.includes('authorized') || combined.includes('eligible')) groups.set(radio.name, 'yes')
-        else if (combined.includes('relocat')) groups.set(radio.name, 'yes')
-        else if (combined.includes('gender') && resumeData.gender) groups.set(radio.name, resumeData.gender)
-        else if (combined.includes('veteran')) groups.set(radio.name, resumeData.veteran || 'no')
-        else if (combined.includes('disability')) groups.set(radio.name, resumeData.disability || 'no')
-        else if (combined.includes('ethnicity') || combined.includes('race')) groups.set(radio.name, resumeData.ethnicity || '')
+
+        if (combined.includes('phone type') || combined.includes('contact type')) {
+          groups.set(radio.name, 'home')
+        } else if (combined.includes('whatsapp')) {
+          groups.set(radio.name, 'yes')
+        } else if (combined.includes('work auth') || combined.includes('authorized') || combined.includes('eligible to work')) {
+          groups.set(radio.name, 'yes')
+        } else if (combined.includes('relocat')) {
+          groups.set(radio.name, 'yes')
+        } else if (combined.includes('gender') && resumeData.gender) {
+          groups.set(radio.name, resumeData.gender)
+        } else if (combined.includes('veteran')) {
+          groups.set(radio.name, resumeData.veteran || 'no')
+        } else if (combined.includes('disability')) {
+          groups.set(radio.name, resumeData.disability || 'no')
+        } else if (combined.includes('ethnicity') || combined.includes('race')) {
+          if (resumeData.ethnicity) groups.set(radio.name, resumeData.ethnicity)
+        } else if (combined.includes('language') && resumeData.languages?.length) {
+          resumeData.languages.forEach(lang => {
+            if (combined.includes(lang.language.toLowerCase())) {
+              groups.set(radio.name, 'yes')
+            }
+          })
+        } else if (combined.includes('english')) {
+          groups.set(radio.name, 'yes')
+        } else if (combined.includes('degree') || combined.includes('bachelor') || combined.includes('master') || combined.includes('phd')) {
+          const hasDegree = resumeData.education && resumeData.education.some(e => e.schoolName || e.fieldOfStudy)
+          groups.set(radio.name, hasDegree ? 'yes' : 'no')
+        } else if (combined.includes('full time') || combined.includes('full-time') || combined.includes('part time') || combined.includes('part-time') || combined.includes('employment type')) {
+          if (resumeData.employmentType) groups.set(radio.name, resumeData.employmentType)
+        }
       })
+
       groups.forEach((value, name) => value && fillRadioGroup(name, value))
     }
 
@@ -312,17 +423,13 @@ export default defineContentScript({
     async function fetchAndUploadFile(element: HTMLInputElement, endpoint: string, fileName: string): Promise<boolean> {
       try {
         const stored = await chrome.storage.local.get(['auth_token', 'api_url'])
-        const token = stored.auth_token
-        const API_URL = stored.api_url
-        if (!token || !API_URL) return false
-
+        if (!stored.auth_token || !stored.api_url) return false
         const response: any = await chrome.runtime.sendMessage({
           action: 'proxyFetchFile',
-          url: `${API_URL}${endpoint}`,
-          token,
+          url: `${stored.api_url}${endpoint}`,
+          token: stored.auth_token,
         })
         if (!response?.success) return false
-
         const res = await fetch(response.base64)
         const blob = await res.blob()
         const file = new File([blob], fileName, { type: 'application/pdf' })
@@ -338,18 +445,14 @@ export default defineContentScript({
       }
     }
 
-    async function handleAllFileInputs(resumeData: ResumeData, cvAvailable: boolean) {
+    async function handleAllFileInputs(cvAvailable: boolean) {
       const fileInputs = Array.from(document.querySelectorAll<HTMLInputElement>('input[type="file"]'))
 
       document.querySelectorAll<HTMLElement>('button, [role="button"], a').forEach(btn => {
-        const txt = btn.textContent?.toLowerCase().trim() || ''
-        const ariaLabel = btn.getAttribute('aria-label')?.toLowerCase() || ''
-        const combined = `${txt} ${ariaLabel}`
-        if ((combined.includes('add file') || combined.includes('attach file') || combined.includes('upload file') || combined.includes('choose file')) && !combined.includes('remove')) {
-          const nearbyInput = btn.closest('div, section, form')?.querySelector('input[type="file"]')
-          if (nearbyInput && nearbyInput instanceof HTMLInputElement && !fileInputs.includes(nearbyInput)) {
-            fileInputs.push(nearbyInput)
-          }
+        const txt = (btn.textContent?.toLowerCase().trim() || '') + ' ' + (btn.getAttribute('aria-label')?.toLowerCase() || '')
+        if ((txt.includes('add file') || txt.includes('attach') || txt.includes('choose file') || txt.includes('upload file')) && !txt.includes('remove')) {
+          const nearby = btn.closest('div, section, form')?.querySelector('input[type="file"]')
+          if (nearby instanceof HTMLInputElement && !fileInputs.includes(nearby)) fileInputs.push(nearby)
         }
       })
 
@@ -357,62 +460,47 @@ export default defineContentScript({
       let cvUploaded = false
 
       for (const input of fileInputs) {
-        const lbl = findLabelForElement(input).toLowerCase()
-        const id = input.id?.toLowerCase() || ''
-        const nm = input.name?.toLowerCase() || ''
-        const combined = `${lbl} ${id} ${nm}`
-
+        const combined = `${findLabelForElement(input)} ${input.id?.toLowerCase()} ${input.name?.toLowerCase()}`
         const isResume = combined.includes('resume') || combined.includes('cv') || combined.includes('curriculum')
         const isCoverLetter = combined.includes('cover') || combined.includes('letter') || combined.includes('motivation')
 
         if (isCoverLetter && cvAvailable && !cvUploaded) {
-          const ok = await fetchAndUploadFile(input, '/api/cv/view', 'cover-letter.pdf')
-          if (ok) cvUploaded = true
+          if (await fetchAndUploadFile(input, '/api/cv/view', 'cover-letter.pdf')) cvUploaded = true
         } else if (isResume && !resumeUploaded) {
-          const ok = await fetchAndUploadFile(input, '/api/resume/view', 'resume.pdf')
-          if (ok) resumeUploaded = true
+          if (await fetchAndUploadFile(input, '/api/resume/view', 'resume.pdf')) resumeUploaded = true
         }
       }
 
       for (const input of fileInputs) {
         if (input.files && input.files.length > 0) continue
-        const accept = input.accept?.toLowerCase() || ''
-        const lbl = findLabelForElement(input).toLowerCase()
-        if ((accept.includes('pdf') || accept === '' || accept.includes('*')) && !resumeUploaded) {
-          const ok = await fetchAndUploadFile(input, '/api/resume/view', 'resume.pdf')
-          if (ok) { resumeUploaded = true; continue }
+        if (!resumeUploaded) {
+          if (await fetchAndUploadFile(input, '/api/resume/view', 'resume.pdf')) { resumeUploaded = true; continue }
         }
         if (cvAvailable && !cvUploaded) {
-          const ok = await fetchAndUploadFile(input, '/api/cv/view', 'cover-letter.pdf')
-          if (ok) cvUploaded = true
+          if (await fetchAndUploadFile(input, '/api/cv/view', 'cover-letter.pdf')) cvUploaded = true
         }
       }
     }
 
 
-    async function clickAddAndFill(sectionType: 'experience' | 'education', data: ResumeData) {
-      const addKeywords: Record<string, string[]> = {
-        experience: ['add experience','add work','add job','add position','add employment','+ experience','+ work'],
-        education:  ['add education','add school','add degree','add qualification','+ education'],
-      }
-      const keywords = addKeywords[sectionType]
-      const btn = Array.from(document.querySelectorAll<HTMLElement>('button, [role="button"]')).find(b => {
-        const txt = b.textContent?.toLowerCase().trim() || ''
-        return keywords.some(k => txt.includes(k))
-      })
+    async function clickAddAndFill(type: 'experience' | 'education', data: ResumeData) {
+      const keywords = type === 'experience'
+        ? ['add experience','add work','add job','add position','add employment','+ experience']
+        : ['add education','add school','add degree','add qualification','+ education']
+      const btn = Array.from(document.querySelectorAll<HTMLElement>('button, [role="button"]')).find(b =>
+        keywords.some(k => (b.textContent?.toLowerCase().trim() || '').includes(k))
+      )
       if (!btn) return
-
-      const beforeCount = document.querySelectorAll('input, textarea, select').length
+      const before = document.querySelectorAll('input, textarea, select').length
       btn.click()
       await new Promise(r => setTimeout(r, 800))
-      const afterCount = document.querySelectorAll('input, textarea, select').length
-      if (afterCount > beforeCount) {
-        await fillAllFields(data, false)
+      if (document.querySelectorAll('input, textarea, select').length > before) {
+        await fillAllFields(data)
       }
     }
 
 
-    async function fillAllFields(resumeData: ResumeData, handleFiles: boolean): Promise<number> {
+    async function fillAllFields(resumeData: ResumeData): Promise<number> {
       const fields = getAllFormFields()
       let filledCount = 0
 
@@ -421,7 +509,7 @@ export default defineContentScript({
       const latestEdu = resumeData.education?.[0]
       const latestProject = resumeData.projects?.[0]
       const locationStr = resumeData.location || [resumeData.city, resumeData.country].filter(Boolean).join(', ')
-
+      const fullAddress = [resumeData.streetAddress, resumeData.city, resumeData.state, resumeData.zipCode, resumeData.country].filter(Boolean).join(', ')
       const websiteUrl = resumeData.portfolio || resumeData.github || resumeData.linkedin || latestProject?.link || ''
 
       const totalExpYears = (() => {
@@ -437,9 +525,7 @@ export default defineContentScript({
         return String(Math.max(0, Math.floor(months / 12)))
       })()
 
-      const salaryDisplay = resumeData.salaryAmount
-        ? `${resumeData.salaryAmount} ${resumeData.salaryCurrency || ''}`.trim()
-        : ''
+      const hasDegree = resumeData.education?.some(e => e.schoolName || e.fieldOfStudy)
 
       const valueMap: Record<string, string> = {
         fullName:            fullName,
@@ -447,9 +533,11 @@ export default defineContentScript({
         lastName:            resumeData.lastName,
         email:               resumeData.email,
         phone:               resumeData.phone,
+        whatsapp:            resumeData.phone,
         countryCode:         resumeData.countryCode || '',
         phoneNumber:         resumeData.phoneNumber || resumeData.phone,
         phoneType:           'Home',
+        fullAddress:         fullAddress,
         streetAddress:       resumeData.streetAddress,
         city:                resumeData.city,
         state:               resumeData.state || '',
@@ -457,10 +545,10 @@ export default defineContentScript({
         country:             resumeData.country,
         location:            locationStr,
         professionalSummary: resumeData.professionalSummary,
-        coverLetter:         resumeData.professionalSummary, 
+        coverLetter:         resumeData.professionalSummary,
         skills:              Array.isArray(resumeData.skills) ? resumeData.skills.join(', ') : '',
         jobTitle:            latestExp?.jobTitle || '',
-        industry:            latestExp?.companyName || latestExp?.jobTitle || '',
+        industry:            latestExp?.jobTitle || '',
         companyName:         latestExp?.companyName || '',
         expStartMonth:       latestExp?.startMonth || '',
         expStartYear:        latestExp?.startYear || '',
@@ -471,6 +559,7 @@ export default defineContentScript({
         eduStartYear:        latestEdu?.startYear || '',
         eduEndYear:          latestEdu?.endYear || '',
         highestEdu:          latestEdu?.fieldOfStudy || '',
+        hasDegree:           hasDegree ? 'yes' : 'no',
         projectName:         latestProject?.projectName || '',
         linkedin:            resumeData.linkedin || '',
         github:              resumeData.github || '',
@@ -481,6 +570,7 @@ export default defineContentScript({
         language:            resumeData.languages?.[0]?.language || '',
         languageLevel:       resumeData.languages?.[0]?.level || '',
         availability:        resumeData.availability || '',
+        employmentType:      resumeData.employmentType || '',
         yearsOfExperience:   totalExpYears,
         workAuth:            'Yes',
         relocation:          'Yes',
@@ -492,27 +582,36 @@ export default defineContentScript({
       }
 
       for (const { element, type } of fields) {
-        const value = valueMap[type]
+        let value = valueMap[type] || ''
+
+        // Salary conversion: detect what period the field is asking for
+        if (type === 'salary' && value && resumeData.salaryType) {
+          const label = findLabelForElement(element)
+          const detected = detectSalaryTypeFromLabel(label)
+          if (detected && detected !== resumeData.salaryType) {
+            value = convertSalary(value, resumeData.salaryType, detected)
+          }
+        }
+
         if (!value) continue
 
         if (element instanceof HTMLInputElement && element.type === 'date') {
-          if (type === 'expStartYear' && latestExp?.startYear) {
-            fillDateInput(element, latestExp.startYear, latestExp.startMonth || '01')
-          } else if (type === 'expEndYear' && latestExp?.endYear) {
-            fillDateInput(element, latestExp.endYear, latestExp.endMonth || '12')
-          } else if (type === 'eduStartYear' && latestEdu?.startYear) {
-            fillDateInput(element, latestEdu.startYear, '09')
-          } else if (type === 'eduEndYear' && latestEdu?.endYear) {
-            fillDateInput(element, latestEdu.endYear, '05')
-          } else {
-            fillDateInput(element, value)
-          }
+          if (type === 'expStartYear') fillDateInput(element, latestExp?.startYear || '', latestExp?.startMonth || '01')
+          else if (type === 'expEndYear') fillDateInput(element, latestExp?.endYear || '', latestExp?.endMonth || '12')
+          else if (type === 'eduStartYear') fillDateInput(element, latestEdu?.startYear || '', '09')
+          else if (type === 'eduEndYear') fillDateInput(element, latestEdu?.endYear || '', '05')
+          else fillDateInput(element, value)
           filledCount++
         } else if (element instanceof HTMLSelectElement) {
           let ok = false
           if (type === 'expStartMonth' || type === 'expEndMonth') ok = fillMonthDropdown(element, value)
-          else if (type === 'highestEdu') ok = fillEducationDropdown(element, value)
+          else if (type === 'state') ok = fillStateDropdown(element, value)
+          else if (type === 'country') ok = fillCountryDropdown(element, value)
+          else if (type === 'countryCode') ok = fillCountryCodeDropdown(element, resumeData.countryCode || '', resumeData.country)
+          else if (type === 'highestEdu' || type === 'fieldOfStudy') ok = fillEducationDropdown(element, value)
           else if (type === 'yearsOfExperience') ok = fillYearsDropdown(element, value)
+          else if (type === 'salary') ok = fillSalaryDropdown(element, value, resumeData.salaryType)
+          else if (type === 'employmentType') ok = fillEmploymentTypeDropdown(element, value)
           else ok = fillDropdown(element, value)
           if (ok) filledCount++
         } else if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
@@ -526,27 +625,26 @@ export default defineContentScript({
 
 
     async function autofillForm(resumeData: ResumeData, cvAvailable: boolean): Promise<number> {
-      let filledCount = await fillAllFields(resumeData, false)
-
+      const filledCount = await fillAllFields(resumeData)
       await new Promise(r => setTimeout(r, 300))
-
       await clickAddAndFill('experience', resumeData)
       await clickAddAndFill('education', resumeData)
-
       await new Promise(r => setTimeout(r, 300))
       handleRadioButtons(resumeData)
-
       await new Promise(r => setTimeout(r, 200))
-      await handleAllFileInputs(resumeData, cvAvailable)
-
+      await handleAllFileInputs(cvAvailable)
       return filledCount
     }
 
+   
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === 'autofill') {
         autofillForm(message.resumeData, message.cvAvailable).then(filledCount => {
           sendResponse({ success: true, filledCount })
+        }).catch(err => {
+          console.error('[RAE] Autofill error:', err)
+          sendResponse({ success: false, filledCount: 0 })
         })
         return true
       }

@@ -109,18 +109,16 @@ export default function ResumeUpload() {
       const responseText = await response.text()
       if (!responseText) throw new Error('Empty response from server')
 
-      const data = JSON.parse(responseText)
+   const data = JSON.parse(responseText)
       if (!response.ok) throw new Error(data.error || 'Upload failed')
 
       setUploadSuccess(true)
       setHasResume(true)
       try {
-        const windowInfo = await chrome.windows.getCurrent()
-        if (windowInfo.id) {
-          await (chrome.sidePanel as any).open({ windowId: windowInfo.id })
-        }
+        const win = await chrome.windows.getCurrent()
+        if (win.id) await (chrome.sidePanel as any).open({ windowId: win.id })
       } catch (e) {
-        console.error('[RAE] Failed to open sidepanel:', e)
+        console.error('[RAE] Could not open sidepanel:', e)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to process resume')
@@ -128,7 +126,6 @@ export default function ResumeUpload() {
       setIsLoading(false)
     }
   }
-
   if (isChecking) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '8px' }}>
