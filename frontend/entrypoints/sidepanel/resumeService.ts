@@ -26,6 +26,11 @@ export interface LanguageEntry {
   level: string
 }
 
+export interface SkillEntry {
+  skill: string
+  yearStarted: string
+}
+
 export interface ParsedResume {
   firstName: string
   lastName: string
@@ -40,7 +45,7 @@ export interface ParsedResume {
   country: string
   state: string;
   professionalSummary: string
-  skills: string[]
+  skills: SkillEntry[]
   github: string
   linkedin: string
   portfolio: string
@@ -54,6 +59,8 @@ export interface ParsedResume {
   veteran: string
   disability: string
   employmentType: string
+  visaSponsorship: string
+  workAuthorization: string
   experience: ExperienceEntry[]
   projects: ProjectEntry[]
   education: EducationEntry[]

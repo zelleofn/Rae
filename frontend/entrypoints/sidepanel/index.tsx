@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import ReactDOM from 'react-dom/client'
-import { resumeService, ParsedResume, ExperienceEntry, ProjectEntry, EducationEntry, LanguageEntry } from './resumeService'
+import { resumeService, ParsedResume, ExperienceEntry, ProjectEntry, EducationEntry, LanguageEntry, SkillEntry } from './resumeService'
 import { getAuthToken } from './storageHelper'
 
 
@@ -11,6 +11,7 @@ const GENDER_OPTIONS = ['Prefer not to say','Male','Female','Non-binary','Other'
 const ETHNICITY_OPTIONS = ['Prefer not to say','White / Caucasian','Black / African American','Hispanic / Latino','Asian','Middle Eastern','Native American / Indigenous','Pacific Islander','Mixed / Multiracial','Other']
 const VETERAN_OPTIONS = ['Prefer not to say','Not a Veteran','Veteran','Active Duty','Reserve / National Guard']
 const DISABILITY_OPTIONS = ['Prefer not to say','No','Yes']
+const YES_NO_OPTIONS = ['Yes', 'No']
 const EMPLOYMENT_TYPE_OPTIONS = ['Full Time', 'Part Time', 'Internship', 'Contract / Contractual', 'Freelance']
 
 const inputStyle = {
@@ -69,6 +70,8 @@ const SidePanel = () => {
             veteran: pd.veteran || '',
             disability: pd.disability || '',
             employmentType: pd.employmentType || '',
+            visaSponsorship: pd.visaSponsorship || '',
+            workAuthorization: pd.workAuthorization || '',
           })
         } else {
           setError('No resume found. Please upload a resume first.')
@@ -94,17 +97,18 @@ const SidePanel = () => {
     setSaveSuccess(false)
   }
 
-  const handleSkillChange = (index: number, value: string) => {
+   const handleSkillChange = (index: number, field: keyof SkillEntry, value: string) => {
     if (!resumeData) return
     const newSkills = [...resumeData.skills]
-    newSkills[index] = value
+    newSkills[index] = { ...newSkills[index], [field]: value }
     setResumeData({ ...resumeData, skills: newSkills })
     setSaveSuccess(false)
   }
 
-  const handleAddSkill = () => {
+
+ const handleAddSkill = () => {
     if (!resumeData) return
-    setResumeData({ ...resumeData, skills: [...resumeData.skills, ''] })
+    setResumeData({ ...resumeData, skills: [...resumeData.skills, { skill: '', yearStarted: '' }] })
     setSaveSuccess(false)
   }
 
@@ -515,55 +519,40 @@ const handleSave = async () => {
       </section>
 
       <section style={{ marginBottom: '30px' }}>
-        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
-          Skills
-        </h2>
-        {resumeData.skills.map((skill, index) => (
-          <div key={index} style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
-            <input
-              type="text"
-              value={skill}
-              onChange={(e) => handleSkillChange(index, e.target.value)}
-              style={{
-                flex: 1,
-                padding: '8px',
-                border: '1px solid #d1d5db',
-                borderRadius: '4px',
-                fontSize: '14px'
-              }}
-            />
-            <button
-              onClick={() => handleRemoveSkill(index)}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: '#dc2626',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        ))}
-        <button
-          onClick={handleAddSkill}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            marginTop: '10px'
-          }}
-        >
-          Add Skill
-        </button>
-      </section>
+  <h2 style={sectionHead}>Skills</h2>
+  {resumeData.skills.map((skillEntry, index) => (
+    <div key={index} style={{ display: 'flex', gap: '6px', marginBottom: '8px', alignItems: 'center' }}>
+      <input
+        type="text"
+        value={skillEntry.skill}
+        placeholder="Skill name"
+        onChange={(e) => handleSkillChange(index, 'skill', e.target.value)}
+        style={{ flex: 1.2, padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px' }}
+      />
+      <input
+        type="number"
+        value={skillEntry.yearStarted}
+        placeholder="Year"
+        min="1980"
+        max={new Date().getFullYear()}
+        onChange={(e) => handleSkillChange(index, 'yearStarted', e.target.value)}
+        style={{ flex: 0.8, padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '12px' }}
+      />
+      <button
+        onClick={() => handleRemoveSkill(index)}
+        style={{ padding: '8px 10px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', whiteSpace: 'nowrap' }}
+      >
+        Remove
+      </button>
+    </div>
+  ))}
+  <button
+    onClick={handleAddSkill}
+    style={{ padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', marginTop: '10px' }}
+  >
+    Add Skill
+  </button>
+</section>
 
       <section style={{ marginBottom: '30px' }}>
         <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
@@ -1007,6 +996,39 @@ const handleSave = async () => {
         >
           <option value="">Select employment type</option>
           {EMPLOYMENT_TYPE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </section>
+
+      {/* ── Visa Sponsorship ── */}
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
+          Visa Sponsorship Needed
+        </h2>
+        <select
+          value={resumeData.visaSponsorship}
+          onChange={e => set('visaSponsorship', e.target.value)}
+          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px', backgroundColor: 'white' }}
+        >
+          <option value="">Select</option>
+          {YES_NO_OPTIONS.map(o => <option key={o} value={o.toLowerCase()}>{o}</option>)}
+        </select>
+      </section>
+
+      {/* ── Work Authorization ── */}
+      <section style={{ marginBottom: '30px' }}>
+        <h2 style={{ fontSize: '18px', marginBottom: '15px', borderBottom: '2px solid #e5e7eb', paddingBottom: '5px' }}>
+          Work Authorization
+        </h2>
+        <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+          Are you legally authorized to work in your target country?
+        </p>
+        <select
+          value={resumeData.workAuthorization}
+          onChange={e => set('workAuthorization', e.target.value)}
+          style={{ width: '100%', padding: '8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '14px', backgroundColor: 'white' }}
+        >
+          <option value="">Select</option>
+          {YES_NO_OPTIONS.map(o => <option key={o} value={o.toLowerCase()}>{o}</option>)}
         </select>
       </section>
 

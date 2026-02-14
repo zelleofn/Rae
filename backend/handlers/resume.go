@@ -35,6 +35,11 @@ type EducationEntry struct {
 	EndYear      string `json:"endYear"`
 }
 
+type SkillEntry struct {
+	Skill       string `json:"skill"`
+	YearStarted string `json:"yearStarted"`
+}
+
 type ParsedResume struct {
 	FirstName           string            `json:"firstName"`
 	LastName            string            `json:"lastName"`
@@ -49,7 +54,7 @@ type ParsedResume struct {
 	Location            string            `json:"location"`
 	Country             string            `json:"country"`
 	ProfessionalSummary string            `json:"professionalSummary"`
-	Skills              []string          `json:"skills"`
+	Skills              []SkillEntry      `json:"skills"`
 	Github              string            `json:"github"`
 	Linkedin            string            `json:"linkedin"`
 	Portfolio           string            `json:"portfolio"`
@@ -64,8 +69,10 @@ type ParsedResume struct {
 	Gender         string            `json:"gender"`
 	Ethnicity      string            `json:"ethnicity"`
 	Veteran        string            `json:"veteran"`
-	Disability     string            `json:"disability"`
-	EmploymentType string            `json:"employmentType"`
+	Disability        string       `json:"disability"`
+	EmploymentType    string       `json:"employmentType"`
+	VisaSponsorship   string       `json:"visaSponsorship"`
+	WorkAuthorization string       `json:"workAuthorization"`
 	Experience     []ExperienceEntry `json:"experience"`
 	Projects       []ProjectEntry    `json:"projects"`
 	Education      []EducationEntry  `json:"education"`

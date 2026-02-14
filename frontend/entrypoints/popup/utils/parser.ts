@@ -219,6 +219,11 @@ export interface EducationEntry {
   endYear: string
 }
 
+export interface SkillEntry {
+  skill: string
+  yearStarted: string
+}
+
 export interface ParsedResume {
   firstName: string
   lastName: string
@@ -233,7 +238,7 @@ export interface ParsedResume {
   location: string
   country: string
   professionalSummary: string
-  skills: string[]
+  skills: SkillEntry[]
   github: string
   linkedin: string
   portfolio: string
@@ -247,6 +252,8 @@ export interface ParsedResume {
   veteran: string
   disability: string
   employmentType: string
+  visaSponsorship: string
+  workAuthorization: string
   experience: ExperienceEntry[]
   projects: ProjectEntry[]
   education: EducationEntry[]
@@ -425,7 +432,7 @@ const github = extractGithub(text)
     location: location,
     country: country,
     professionalSummary: extractProfessionalSummary(text),
-    skills: extractSkills(text),
+    skills: extractSkills(text).map(skill => ({ skill, yearStarted: '' })),
     github,
     linkedin: extractLinkedin(text),
     portfolio: extractPortfolio(text) || github,
@@ -439,6 +446,8 @@ const github = extractGithub(text)
     veteran: '',
     disability: '',
     employmentType: '',
+    visaSponsorship: '',
+    workAuthorization: '',
     experience,
     projects,
     education,
