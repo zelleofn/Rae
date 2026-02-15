@@ -1,84 +1,98 @@
 package main
 
 import (
-    "context"
-    "log"
-    "os"
+	"context"
+	"log"
+	"os"
 
-    "github.com/gin-contrib/cors"
-    "github.com/gin-gonic/gin"
-    "github.com/joho/godotenv"
-    "github.com/jackc/pgx/v5/pgxpool"
-    "github.com/zelleofn/rae-backend/handlers"
-    "github.com/zelleofn/rae-backend/middleware"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/joho/godotenv"
+	"github.com/zelleofn/rae-backend/handlers"
+	"github.com/zelleofn/rae-backend/middleware"
 )
 
 func main() {
-    if err := godotenv.Load(); err != nil {
-        log.Println("No .env file found")
-    }
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
 
-    dbURL := os.Getenv("DATABASE_URL")
-    if dbURL == "" {
-        log.Fatal("DATABASE_URL not set")
-    }
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		log.Fatal("DATABASE_URL not set")
+	}
 
-    pool, err := pgxpool.New(context.Background(), dbURL)
-    if err != nil {
-        log.Fatalf("Failed to connect to database: %v", err)
-    }
-    defer pool.Close()
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+	defer pool.Close()
 
-    log.Println("Connected to database successfully")
+	log.Println("Connected to database successfully")
 
-    r := gin.Default()
+	r := gin.Default()
 
-    r.Use(cors.New(cors.Config{
-        AllowOrigins:     []string{"*"},
-        AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-        AllowHeaders:     []string{"Content-Type", "Authorization"},
-        AllowCredentials: true,
-    }))
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"*"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
-    r.Use(func(c *gin.Context) {
-        c.Set("db", pool)
-        c.Next()
-    })
+	r.Use(func(c *gin.Context) {
+		c.Set("db", pool)
+		c.Next()
+	})
 
-    r.GET("/health", middleware.LenientRateLimitMiddleware(), func(c *gin.Context) {
-        c.JSON(200, gin.H{"status": "ok"})
-    })
+	
+	r.GET("/health", middleware.LenientRateLimitMiddleware(), func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
 
-    r.POST("/api/auth/register", middleware.StrictRateLimitMiddleware(), handlers.RegisterUser)
-    r.POST("/api/auth/login", middleware.StrictRateLimitMiddleware(), handlers.LoginUser)
-    r.POST("/api/auth/oauth/google",   middleware.OAuthRateLimitMiddleware(), handlers.GoogleOAuth)
-    r.POST("/api/auth/oauth/linkedin", middleware.OAuthRateLimitMiddleware(), handlers.LinkedInOAuth)
+	r.POST("/api/auth/register", middleware.StrictRateLimitMiddleware(), handlers.RegisterUser)
+	r.POST("/api/auth/login", middleware.StrictRateLimitMiddleware(), handlers.LoginUser)
+	r.POST("/api/auth/oauth/google", middleware.OAuthRateLimitMiddleware(), handlers.GoogleOAuth)
+	r.POST("/api/auth/oauth/linkedin", middleware.OAuthRateLimitMiddleware(), handlers.LinkedInOAuth)
 
-    authorized := r.Group("/api")
-    authorized.Use(middleware.AuthMiddleware())
-    authorized.Use(middleware.ModerateRateLimitMiddleware())
-    {
-        authorized.POST("/resume/upload", handlers.UploadResume)
-        authorized.GET("/resume/:id", handlers.GetResume)
-        authorized.GET("/resumes", handlers.GetUserResumes)
-        authorized.PUT("/resume/:id", handlers.UpdateResume)
-        authorized.GET("/resume/check", handlers.CheckUserResume)
-        authorized.GET("/resume/view", handlers.ViewResume)
-        authorized.PATCH("/resume/parsed", handlers.UpdateParsedData)
-        authorized.POST("/cv/upload", handlers.UploadCV)
-        authorized.GET("/cv/check", handlers.CheckUserCV)
-        authorized.GET("/cv/view", handlers.ViewCV)
-        authorized.PATCH("/cv/parsed", handlers.UpdateCVParsedData)
-        authorized.GET("/cv/:id", handlers.GetCV)
-        authorized.GET("/cvs", handlers.GetUserCVs)
-        authorized.PUT("/cv/:id", handlers.UpdateCV)
-    }
+	
+	authorized := r.Group("/api")
+	authorized.Use(middleware.AuthMiddleware())
+	authorized.Use(middleware.ModerateRateLimitMiddleware())
+	{
+		
+		authorized.GET("/resume/tier", handlers.GetTierInfo)
+		authorized.GET("/resume/check", handlers.CheckUserResume)
+		authorized.GET("/resume/view", handlers.ViewResume)
+		authorized.GET("/resumes", handlers.GetUserResumes)
 
-    port := os.Getenv("PORT")
-    if port == "" {
-        port = "3000"
-    }
+		authorized.POST("/resume/upload", handlers.UploadResume)
+		authorized.PATCH("/resume/parsed", handlers.UpdateParsedData)
+		authorized.PUT("/resume/parsed-data", handlers.UpdateParsedDataByID)
 
-    log.Printf("Server is running on port %s", port)
-    r.Run(":" + port)
+		
+		authorized.GET("/resume/:id", handlers.GetResume)
+		authorized.PUT("/resume/:id", handlers.UpdateResume)
+		authorized.DELETE("/resume/:id", handlers.DeleteResume)
+
+	
+		authorized.GET("/cv/check", handlers.CheckUserCV)
+		authorized.GET("/cv/view", handlers.ViewCV)
+		authorized.GET("/cvs", handlers.GetUserCVs)
+
+		authorized.POST("/cv/upload", handlers.UploadCV)
+		authorized.PATCH("/cv/parsed", handlers.UpdateCVParsedData)
+
+		
+		authorized.GET("/cv/:id", handlers.GetCV)
+		authorized.PUT("/cv/:id", handlers.UpdateCV)
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
+	log.Printf("Server is running on port %s", port)
+	r.Run(":" + port)
 }

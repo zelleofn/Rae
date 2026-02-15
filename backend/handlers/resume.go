@@ -41,41 +41,41 @@ type SkillEntry struct {
 }
 
 type ParsedResume struct {
-	FirstName           string            `json:"firstName"`
-	LastName            string            `json:"lastName"`
-	Email               string            `json:"email"`
-	Phone               string            `json:"phone"`
-	CountryCode         string            `json:"countryCode"`
-	PhoneNumber         string            `json:"phoneNumber"`
-	StreetAddress       string            `json:"streetAddress"`
-	City                string            `json:"city"`
-	ZipCode             string            `json:"zipCode"`
-	State               string            `json:"state"`
-	Location            string            `json:"location"`
-	Country             string            `json:"country"`
-	ProfessionalSummary string            `json:"professionalSummary"`
-	Skills              []SkillEntry      `json:"skills"`
-	Github              string            `json:"github"`
-	Linkedin            string            `json:"linkedin"`
-	Portfolio           string            `json:"portfolio"`
-	Availability        string            `json:"availability"`
+	FirstName           string       `json:"firstName"`
+	LastName            string       `json:"lastName"`
+	Email               string       `json:"email"`
+	Phone               string       `json:"phone"`
+	CountryCode         string       `json:"countryCode"`
+	PhoneNumber         string       `json:"phoneNumber"`
+	StreetAddress       string       `json:"streetAddress"`
+	City                string       `json:"city"`
+	ZipCode             string       `json:"zipCode"`
+	State               string       `json:"state"`
+	Location            string       `json:"location"`
+	Country             string       `json:"country"`
+	ProfessionalSummary string       `json:"professionalSummary"`
+	Skills              []SkillEntry `json:"skills"`
+	Github              string       `json:"github"`
+	Linkedin            string       `json:"linkedin"`
+	Portfolio           string       `json:"portfolio"`
+	Availability        string       `json:"availability"`
 	Languages           []struct {
 		Language string `json:"language"`
 		Level    string `json:"level"`
 	} `json:"languages"`
-	SalaryAmount   string            `json:"salaryAmount"`
-	SalaryCurrency string            `json:"salaryCurrency"`
-	SalaryType     string            `json:"salaryType"`
-	Gender         string            `json:"gender"`
-	Ethnicity      string            `json:"ethnicity"`
-	Veteran        string            `json:"veteran"`
-	Disability        string       `json:"disability"`
-	EmploymentType    string       `json:"employmentType"`
-	VisaSponsorship   string       `json:"visaSponsorship"`
-	WorkAuthorization string       `json:"workAuthorization"`
-	Experience     []ExperienceEntry `json:"experience"`
-	Projects       []ProjectEntry    `json:"projects"`
-	Education      []EducationEntry  `json:"education"`
+	SalaryAmount      string            `json:"salaryAmount"`
+	SalaryCurrency    string            `json:"salaryCurrency"`
+	SalaryType        string            `json:"salaryType"`
+	Gender            string            `json:"gender"`
+	Ethnicity         string            `json:"ethnicity"`
+	Veteran           string            `json:"veteran"`
+	Disability        string            `json:"disability"`
+	EmploymentType    string            `json:"employmentType"`
+	VisaSponsorship   string            `json:"visaSponsorship"`
+	WorkAuthorization string            `json:"workAuthorization"`
+	Experience        []ExperienceEntry `json:"experience"`
+	Projects          []ProjectEntry    `json:"projects"`
+	Education         []EducationEntry  `json:"education"`
 }
 
 type ResumeUploadRequest struct {
@@ -90,10 +90,119 @@ type UpdateParsedDataRequest struct {
 }
 
 type ResumeUploadResponse struct {
-    ID       int64  `json:"id"`
-    FileName string `json:"file_name"`
-    Message  string `json:"message"`
+	ID       int64  `json:"id"`
+	FileName string `json:"file_name"`
+	Message  string `json:"message"`
+	Tier     string `json:"tier"`
+	Count    int    `json:"count"`
+	Limit    int    `json:"limit"`
 }
+
+type UpdateParsedDataByIDRequest struct {
+	ParsedData ParsedResume `json:"parsed_data" binding:"required"`
+	ResumeID   *int64       `json:"resume_id"` 
+}
+
+func UpdateParsedDataByID(c *gin.Context) {
+	var req UpdateParsedDataByIDRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+
+	var (
+		rowsAffected int64
+		execErr      error
+	)
+
+	if req.ResumeID != nil {
+		r, err := db.Exec(context.Background(),
+			"UPDATE resumes SET parsed_data = $1 WHERE id = $2 AND user_id = $3",
+			req.ParsedData, *req.ResumeID, userID,
+		)
+		rowsAffected, execErr = r.RowsAffected(), err
+	} else {
+		r, err := db.Exec(context.Background(),
+			`UPDATE resumes SET parsed_data = $1
+			 WHERE id = (
+			   SELECT id FROM resumes WHERE user_id = $2 ORDER BY uploaded_at DESC LIMIT 1
+			 )`,
+			req.ParsedData, userID,
+		)
+		rowsAffected, execErr = r.RowsAffected(), err
+	}
+
+	if execErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update parsed data"})
+		return
+	}
+	if rowsAffected == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Parsed data updated successfully"})
+}
+
+
+const (
+	FreeTierResumeLimit = 1
+	ProTierResumeLimit  = 5
+)
+
+func getUserTier(db *pgxpool.Pool, userID interface{}) string {
+	var tier string
+	err := db.QueryRow(context.Background(),
+		"SELECT COALESCE(subscription_tier, 'free') FROM users WHERE id = $1",
+		userID,
+	).Scan(&tier)
+	if err != nil {
+		return "free"
+	}
+	return tier
+}
+
+func isPro(tier string) bool {
+	return tier == "pro" || tier == "premium"
+}
+
+
+func GetTierInfo(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+	tier := getUserTier(db, userID)
+
+	var count int
+	db.QueryRow(context.Background(),
+		"SELECT COUNT(*) FROM resumes WHERE user_id = $1", userID,
+	).Scan(&count)
+
+	limit := FreeTierResumeLimit
+	if isPro(tier) {
+		limit = ProTierResumeLimit
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"tier":   tier,
+		"count":  count,
+		"limit":  limit,
+		"is_pro": isPro(tier),
+	})
+}
+
 
 func UploadResume(c *gin.Context) {
 	var req ResumeUploadRequest
@@ -109,18 +218,29 @@ func UploadResume(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*pgxpool.Pool)
+	tier := getUserTier(db, userID)
+	ctx := context.Background()
 
-	
-	_, err := db.Exec(context.Background(),
-		"DELETE FROM resumes WHERE user_id = $1",
-		userID,
-	)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete old resume"})
-		return
+	var currentCount int
+	db.QueryRow(ctx, "SELECT COUNT(*) FROM resumes WHERE user_id = $1", userID).Scan(&currentCount)
+
+	if isPro(tier) {
+		if currentCount >= ProTierResumeLimit {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": "Pro tier allows up to 5 resume profiles. Please delete one before uploading.",
+				"tier":  tier,
+				"count": currentCount,
+				"limit": ProTierResumeLimit,
+			})
+			return
+		}
+	} else {
+		if _, err := db.Exec(ctx, "DELETE FROM resumes WHERE user_id = $1", userID); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to replace existing resume"})
+			return
+		}
 	}
 
-	
 	fileBytes, err := base64.StdEncoding.DecodeString(req.FileData)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file data encoding"})
@@ -128,30 +248,33 @@ func UploadResume(c *gin.Context) {
 	}
 
 	var resumeID int64
-	err = db.QueryRow(context.Background(),
+	err = db.QueryRow(ctx,
 		"INSERT INTO resumes (user_id, file_name, raw_text, parsed_data, file_data) VALUES ($1, $2, $3, $4, $5) RETURNING id",
-		userID,
-		req.FileName,
-		req.RawText,
-		req.ParsedData,
-		fileBytes,
+		userID, req.FileName, req.RawText, req.ParsedData, fileBytes,
 	).Scan(&resumeID)
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to store resume"})
 		return
+	}
+
+	limit := FreeTierResumeLimit
+	if isPro(tier) {
+		limit = ProTierResumeLimit
 	}
 
 	c.JSON(http.StatusCreated, ResumeUploadResponse{
 		ID:       resumeID,
 		FileName: req.FileName,
 		Message:  "Resume uploaded successfully",
+		Tier:     tier,
+		Count:    currentCount + 1,
+		Limit:    limit,
 	})
 }
 
-func GetResume(c *gin.Context) {
-	resumeID := c.Param("id")
 
+func DeleteResume(c *gin.Context) {
+	resumeID := c.Param("id")
 	userID, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
@@ -160,21 +283,43 @@ func GetResume(c *gin.Context) {
 
 	db := c.MustGet("db").(*pgxpool.Pool)
 
-	var fileName string
-	var rawText string
-	var parsedData string
+	result, err := db.Exec(context.Background(),
+		"DELETE FROM resumes WHERE id = $1 AND user_id = $2",
+		resumeID, userID,
+	)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete resume"})
+		return
+	}
+	if result.RowsAffected() == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
+		return
+	}
 
+	c.JSON(http.StatusOK, gin.H{"message": "Resume deleted"})
+}
+
+
+func GetResume(c *gin.Context) {
+	resumeID := c.Param("id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+
+	var fileName, rawText, parsedData string
 	err := db.QueryRow(context.Background(),
 		"SELECT file_name, raw_text, parsed_data FROM resumes WHERE id = $1 AND user_id = $2",
-		resumeID,
-		userID,
+		resumeID, userID,
 	).Scan(&fileName, &rawText, &parsedData)
 
 	if err == sql.ErrNoRows {
 		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
 		return
 	}
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
@@ -188,6 +333,7 @@ func GetResume(c *gin.Context) {
 	})
 }
 
+
 func GetUserResumes(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -196,6 +342,7 @@ func GetUserResumes(c *gin.Context) {
 	}
 
 	db := c.MustGet("db").(*pgxpool.Pool)
+	tier := getUserTier(db, userID)
 
 	rows, err := db.Query(context.Background(),
 		"SELECT id, file_name, uploaded_at FROM resumes WHERE user_id = $1 ORDER BY uploaded_at DESC",
@@ -212,12 +359,10 @@ func GetUserResumes(c *gin.Context) {
 		var id int64
 		var fileName string
 		var uploadedAt time.Time
-
 		if err := rows.Scan(&id, &fileName, &uploadedAt); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "scan error"})
 			return
 		}
-
 		resumes = append(resumes, map[string]interface{}{
 			"id":          id,
 			"file_name":   fileName,
@@ -225,7 +370,18 @@ func GetUserResumes(c *gin.Context) {
 		})
 	}
 
-	c.JSON(http.StatusOK, gin.H{"resumes": resumes})
+	limit := FreeTierResumeLimit
+	if isPro(tier) {
+		limit = ProTierResumeLimit
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"resumes": resumes,
+		"tier":    tier,
+		"count":   len(resumes),
+		"limit":   limit,
+		"is_pro":  isPro(tier),
+	})
 }
 
 
@@ -249,7 +405,6 @@ func CheckUserResume(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"has_resume": false})
 		return
 	}
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
@@ -274,7 +429,6 @@ func ViewResume(c *gin.Context) {
 
 	var fileName string
 	var fileData []byte
-
 	err := db.QueryRow(context.Background(),
 		"SELECT file_name, file_data FROM resumes WHERE user_id = $1 ORDER BY uploaded_at DESC LIMIT 1",
 		userID,
@@ -284,13 +438,11 @@ func ViewResume(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
 		return
 	}
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
 		return
 	}
 
-	
 	c.Header("Content-Type", "application/pdf")
 	c.Header("Content-Disposition", "inline; filename=\""+fileName+"\"")
 	c.Data(http.StatusOK, "application/pdf", fileData)
@@ -314,23 +466,18 @@ func UpdateParsedData(c *gin.Context) {
 
 	result, err := db.Exec(context.Background(),
 		"UPDATE resumes SET parsed_data = $1 WHERE user_id = $2",
-		req.ParsedData,
-		userID,
+		req.ParsedData, userID,
 	)
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update parsed data"})
 		return
 	}
-
 	if result.RowsAffected() == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Parsed data updated successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Parsed data updated successfully"})
 }
 
 
@@ -351,7 +498,6 @@ func UpdateResume(c *gin.Context) {
 
 	db := c.MustGet("db").(*pgxpool.Pool)
 
-	
 	fileBytes, err := base64.StdEncoding.DecodeString(req.FileData)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid file data encoding"})
@@ -360,25 +506,16 @@ func UpdateResume(c *gin.Context) {
 
 	result, err := db.Exec(context.Background(),
 		"UPDATE resumes SET file_name = $1, raw_text = $2, parsed_data = $3, file_data = $4 WHERE id = $5 AND user_id = $6",
-		req.FileName,
-		req.RawText,
-		req.ParsedData,
-		fileBytes,
-		resumeID,
-		userID,
+		req.FileName, req.RawText, req.ParsedData, fileBytes, resumeID, userID,
 	)
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update resume"})
 		return
 	}
-
 	if result.RowsAffected() == 0 {
 		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Resume updated successfully",
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Resume updated successfully"})
 }
