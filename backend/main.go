@@ -70,7 +70,7 @@ func main() {
 		authorized.PATCH("/resume/parsed", handlers.UpdateParsedData)
 		authorized.PUT("/resume/parsed-data", handlers.UpdateParsedDataByID)
 
-		
+		authorized.GET("/resume/:id/view", handlers.ViewResumeByID)
 		authorized.GET("/resume/:id", handlers.GetResume)
 		authorized.PUT("/resume/:id", handlers.UpdateResume)
 		authorized.DELETE("/resume/:id", handlers.DeleteResume)
@@ -83,7 +83,6 @@ func main() {
 		authorized.POST("/cv/upload", handlers.UploadCV)
 		authorized.PATCH("/cv/parsed", handlers.UpdateCVParsedData)
 
-		
 		authorized.GET("/cv/:id", handlers.GetCV)
 		authorized.PUT("/cv/:id", handlers.UpdateCV)
 	}

@@ -18,9 +18,10 @@ interface ResumeRecord {
 
 interface ResumeUploadProps {
   onEditClick: () => void
+  onSelectionChange?: (resumeId: number | null) => void
 }
 
-export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
+export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeUploadProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [uploadSuccess, setUploadSuccess] = useState(false)
@@ -29,6 +30,7 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
   const [isChecking, setIsChecking] = useState(true)
   const [showConfirm, setShowConfirm] = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null)
 
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
@@ -46,7 +48,16 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
       if (tierRes.ok) setTierInfo(await tierRes.json())
       if (resumesRes.ok) {
         const data = await resumesRes.json()
-        setResumes(data.resumes || [])
+        const list: ResumeRecord[] = data.resumes || []
+        setResumes(list)
+
+        
+        setSelectedResumeId(prev => {
+          const stillExists = list.some(r => r.id === prev)
+          const next = stillExists ? prev : (list[0]?.id ?? null)
+          onSelectionChange?.(next)
+          return next
+        })
       }
     } catch (err) {
       console.error('Failed to fetch tier info:', err)
@@ -56,6 +67,11 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
   }
 
   useEffect(() => { fetchTierAndResumes() }, [user, token])
+
+  const handleSelectResume = (id: number) => {
+    setSelectedResumeId(id)
+    onSelectionChange?.(id)
+  }
 
   const handleButtonClick = () => {
     setError(null)
@@ -74,16 +90,22 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
     fileInputRef.current?.click()
   }
 
+
   const handleViewResume = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/resume/view`, {
+      
+      const url = (tierInfo?.is_pro && selectedResumeId)
+        ? `${API_URL}/api/resume/${selectedResumeId}/view`
+        : `${API_URL}/api/resume/view`
+
+      const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!response.ok) throw new Error('Failed to fetch resume')
       const blob = await response.blob()
-      const url = URL.createObjectURL(blob)
-      window.open(url, '_blank')
-      setTimeout(() => URL.revokeObjectURL(url), 100)
+      const objectUrl = URL.createObjectURL(blob)
+      window.open(objectUrl, '_blank')
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 100)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to view resume')
     }
@@ -191,11 +213,12 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
 
    
       <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
-        {/* View button  */}
         {hasResume && (
           <button
             onClick={handleViewResume}
-            title="View latest resume"
+            title={tierInfo?.is_pro && selectedResumeId
+              ? `View: ${resumes.find(r => r.id === selectedResumeId)?.file_name ?? 'selected resume'}`
+              : 'View resume'}
             style={{
               backgroundColor: '#64748b', color: 'white', padding: '8px 10px',
               borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '13px',
@@ -206,7 +229,6 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
           </button>
         )}
 
-        {/* Upload button */}
         <button
           onClick={handleButtonClick}
           disabled={isLoading || atLimit}
@@ -221,7 +243,6 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
           {isLoading ? 'Uploading...' : tierInfo?.is_pro ? '+ Add Profile' : 'Upload Resume'}
         </button>
 
-        {/* Edit button */}
         <button
           onClick={onEditClick}
           style={{
@@ -234,7 +255,7 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
         </button>
       </div>
 
-      {/* Replace confirmation*/}
+      {/* Replace confirmation */}
       {showConfirm && (
         <div style={{
           padding: '10px', backgroundColor: '#fef9c3',
@@ -244,16 +265,12 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
             This will <strong>replace</strong> your existing resume. Continue?
           </p>
           <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              onClick={handleConfirmReplace}
-              style={{ flex: 1, padding: '6px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-            >
+            <button onClick={handleConfirmReplace}
+              style={{ flex: 1, padding: '6px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
               Replace
             </button>
-            <button
-              onClick={() => setShowConfirm(false)}
-              style={{ flex: 1, padding: '6px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}
-            >
+            <button onClick={() => setShowConfirm(false)}
+              style={{ flex: 1, padding: '6px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>
               Cancel
             </button>
           </div>
@@ -269,32 +286,74 @@ export default function ResumeUpload({ onEditClick }: ResumeUploadProps) {
 
       <input type="file" accept=".pdf" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} />
 
-      {/* Pro resume list with delete buttons */}
+      {/* Pro resume list with radio buttons + delete */}
       {tierInfo?.is_pro && resumes.length > 0 && (
         <div style={{ marginTop: '2px' }}>
-          <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px' }}>Resume Profiles:</p>
-          {resumes.map((r) => (
-            <div key={r.id} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              padding: '6px 8px', backgroundColor: '#f9fafb', borderRadius: '4px',
-              marginBottom: '4px', border: '1px solid #e5e7eb',
-            }}>
-              <span style={{ fontSize: '12px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '160px' }}>
-                📄 {r.file_name}
-              </span>
-              <button
-                onClick={() => handleDeleteResume(r.id)}
-                disabled={deletingId === r.id}
+          <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px' }}>
+            Resume Profiles — <span style={{ color: '#6366f1' }}>select active</span>
+          </p>
+          {resumes.map((r) => {
+            const isSelected = selectedResumeId === r.id
+            return (
+              <div
+                key={r.id}
+                onClick={() => handleSelectResume(r.id)}
                 style={{
-                  padding: '3px 8px', backgroundColor: '#dc2626', color: 'white',
-                  border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '11px',
-                  opacity: deletingId === r.id ? 0.5 : 1, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '6px 8px', borderRadius: '4px', marginBottom: '4px',
+                  cursor: 'pointer',
+                  backgroundColor: isSelected ? '#eff6ff' : '#f9fafb',
+                  border: `1px solid ${isSelected ? '#3b82f6' : '#e5e7eb'}`,
+                  transition: 'all 0.1s',
                 }}
               >
-                {deletingId === r.id ? '...' : 'Delete'}
-              </button>
-            </div>
-          ))}
+                {/* Radio button */}
+                <div style={{
+                  width: '14px', height: '14px', borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${isSelected ? '#3b82f6' : '#9ca3af'}`,
+                  backgroundColor: isSelected ? '#3b82f6' : 'white',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {isSelected && (
+                    <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'white' }} />
+                  )}
+                </div>
+
+                {/* Filename */}
+                <span style={{
+                  fontSize: '12px', color: isSelected ? '#1d4ed8' : '#374151',
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  flex: 1, fontWeight: isSelected ? '500' : 'normal',
+                }}>
+                   {r.file_name}
+                </span>
+
+                {/* Active badge */}
+                {isSelected && (
+                  <span style={{
+                    fontSize: '9px', padding: '1px 5px', borderRadius: '8px',
+                    backgroundColor: '#dbeafe', color: '#1d4ed8',
+                    fontWeight: 'bold', textTransform: 'uppercase', flexShrink: 0,
+                  }}>
+                    Active
+                  </span>
+                )}
+
+                {/* Delete button  */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleDeleteResume(r.id) }}
+                  disabled={deletingId === r.id}
+                  style={{
+                    padding: '3px 8px', backgroundColor: '#dc2626', color: 'white',
+                    border: 'none', borderRadius: '3px', cursor: 'pointer', fontSize: '11px',
+                    opacity: deletingId === r.id ? 0.5 : 1, flexShrink: 0,
+                  }}
+                >
+                  {deletingId === r.id ? '...' : 'Delete'}
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 

@@ -103,6 +103,37 @@ type UpdateParsedDataByIDRequest struct {
 	ResumeID   *int64       `json:"resume_id"` 
 }
 
+func ViewResumeByID(c *gin.Context) {
+	resumeID := c.Param("id")
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "user not authenticated"})
+		return
+	}
+
+	db := c.MustGet("db").(*pgxpool.Pool)
+
+	var fileName string
+	var fileData []byte
+	err := db.QueryRow(context.Background(),
+		"SELECT file_name, file_data FROM resumes WHERE id = $1 AND user_id = $2",
+		resumeID, userID,
+	).Scan(&fileName, &fileData)
+
+	if err == sql.ErrNoRows {
+		c.JSON(http.StatusNotFound, gin.H{"error": "resume not found"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "database error"})
+		return
+	}
+
+	c.Header("Content-Type", "application/pdf")
+	c.Header("Content-Disposition", "inline; filename=\""+fileName+"\"")
+	c.Data(http.StatusOK, "application/pdf", fileData)
+}
+
 func UpdateParsedDataByID(c *gin.Context) {
 	var req UpdateParsedDataByIDRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

@@ -10,6 +10,8 @@ export default function App() {
   const [isHydrating, setIsHydrating] = useState(true)
   const [isAutofilling, setIsAutofilling] = useState(false)
   const [autofillMessage, setAutofillMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [selectedResumeId, setSelectedResumeId] = useState<number | null>(null)
+
   const { user, isLoading, error, login, register, logout, hydrate, loginWithGoogle, loginWithLinkedIn } = useAuthStore()
   const token = useAuthStore((state) => state.token)
 
@@ -60,21 +62,22 @@ export default function App() {
       const API_URL = import.meta.env.VITE_API_URL
       await chrome.storage.local.set({ auth_token: token, api_url: API_URL })
 
-      const resumeResponse = await fetch(`${API_URL}/api/resumes`, {
+      let resumeId = selectedResumeId
+
+      if (!resumeId) {
+        const resumeResponse = await fetch(`${API_URL}/api/resumes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!resumeResponse.ok) throw new Error('No resume found. Please upload a resume first.')
+        const resumeData = await resumeResponse.json()
+        const resumes = resumeData.resumes
+        if (!resumes || resumes.length === 0) throw new Error('No resume found. Please upload a resume first.')
+        resumeId = resumes[0].id
+      }
+
+      const resumeDetailResponse = await fetch(`${API_URL}/api/resume/${resumeId}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
-
-      if (!resumeResponse.ok) throw new Error('No resume found. Please upload a resume first.')
-      const resumeData = await resumeResponse.json()
-      const resumes = resumeData.resumes
-
-      if (!resumes || resumes.length === 0) throw new Error('No resume found. Please upload a resume first.')
-
-      const latestResumeId = resumes[0].id
-      const resumeDetailResponse = await fetch(`${API_URL}/api/resume/${latestResumeId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
       if (!resumeDetailResponse.ok) throw new Error('Failed to fetch resume details')
       const resumeDetail = await resumeDetailResponse.json()
 
@@ -195,8 +198,10 @@ export default function App() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <p style={{ color: '#374151', textAlign: 'center' }}>Welcome back, {user.email}!</p>
 
-            
-            <ResumeUpload onEditClick={handleEditClick} />
+            <ResumeUpload
+              onEditClick={handleEditClick}
+              onSelectionChange={setSelectedResumeId}
+            />
 
             <CVUpload />
 
