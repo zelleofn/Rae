@@ -5,7 +5,7 @@ export default defineConfig({
   manifest: {
     name: "Rae - Resume Autofill Extension",
     description: "Automatically fill job applications using your resume data.",
-    permissions: ['storage', 'tabs', 'sidePanel'],
+    permissions: ['storage', 'tabs', 'sidePanel', 'identity', 'identity.email'],
     
     side_panel: {
       default_path: 'sidepanel.html', 

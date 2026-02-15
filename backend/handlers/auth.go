@@ -1,68 +1,73 @@
 package handlers
 
 import (
-    "context"
-    "net/http"
+	"context"
+	"net/http"
 
-    "github.com/gin-gonic/gin"
-    "github.com/jackc/pgx/v5/pgxpool"
-    "github.com/jackc/pgconn"
-    "golang.org/x/crypto/bcrypt"
-    "github.com/zelleofn/rae-backend/middleware"
+	"github.com/gin-gonic/gin"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgconn"
+	"golang.org/x/crypto/bcrypt"
+	"github.com/zelleofn/rae-backend/middleware"
 )
 
 type RegisterRequest struct {
-    Email    string `json:"email" binding:"required,email"`
-    Password string `json:"password" binding:"required,min=6"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+	DeviceID string `json:"device_id"`
+	Browser  string `json:"browser"`
+	OS       string `json:"os"`
 }
 
 type RegisterResponse struct {
-    ID    int64  `json:"id"`
-    Email string `json:"email"`
-    Token string `json:"token"`
+	ID    int64  `json:"id"`
+	Email string `json:"email"`
+	Token string `json:"token"`
 }
 
 func RegisterUser(c *gin.Context) {
-    var req RegisterRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-        return
-    }
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
-        return
-    }
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to hash password"})
+		return
+	}
 
-    db := c.MustGet("db").(*pgxpool.Pool)
+	db := c.MustGet("db").(*pgxpool.Pool)
 
-    var userID int64
-    err = db.QueryRow(context.Background(),
-        "INSERT INTO users (email, password_hash, subscription_tier) VALUES ($1, $2, $3) RETURNING id",
-        req.Email, string(hashedPassword), "free",
-    ).Scan(&userID)
+	var userID int64
+	err = db.QueryRow(context.Background(),
+		"INSERT INTO users (email, password_hash, subscription_tier) VALUES ($1, $2, $3) RETURNING id",
+		req.Email, string(hashedPassword), "free",
+	).Scan(&userID)
 
-    if err != nil {
-        if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
-            
-            c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
-            return
-        }
-       
-        c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-        return
-    }
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok && pgErr.Code == "23505" {
+			c.JSON(http.StatusConflict, gin.H{"error": "email already exists"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
-    token, err := middleware.GenerateToken(userID, req.Email)
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
-        return
-    }
+	if req.DeviceID != "" {
+		trackDevice(db, userID, req.DeviceID, req.Browser, req.OS)
+	}
 
-    c.JSON(http.StatusCreated, RegisterResponse{
-        ID:    userID,
-        Email: req.Email,
-        Token: token,
-    })
+	token, err := middleware.GenerateToken(userID, req.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, RegisterResponse{
+		ID:    userID,
+		Email: req.Email,
+		Token: token,
+	})
 }
