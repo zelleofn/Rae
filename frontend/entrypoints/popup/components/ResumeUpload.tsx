@@ -21,6 +21,29 @@ interface ResumeUploadProps {
   onSelectionChange?: (resumeId: number | null) => void
 }
 
+const STORAGE_KEY = 'selected_resume_id'
+
+async function loadStoredResumeId(): Promise<number | null> {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEY)
+    const val = result[STORAGE_KEY]
+    return typeof val === 'number' ? val : null   
+  } catch {
+    return null
+  }
+}
+
+async function saveResumeId(id: number | null) {
+  try {
+    if (id === null) {
+      await chrome.storage.local.remove(STORAGE_KEY)
+    } else {
+      await chrome.storage.local.set({ [STORAGE_KEY]: id })
+    }
+  } catch {
+  }
+}
+
 export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeUploadProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -41,23 +64,30 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
   const fetchTierAndResumes = async () => {
     if (!user || !token) { setIsChecking(false); return }
     try {
-      const [tierRes, resumesRes] = await Promise.all([
+      const [tierRes, resumesRes, storedId] = await Promise.all([
         fetch(`${API_URL}/api/resume/tier`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/api/resumes`, { headers: { Authorization: `Bearer ${token}` } }),
+        loadStoredResumeId(),
       ])
+
       if (tierRes.ok) setTierInfo(await tierRes.json())
+
       if (resumesRes.ok) {
         const data = await resumesRes.json()
         const list: ResumeRecord[] = data.resumes || []
         setResumes(list)
 
-        
-        setSelectedResumeId(prev => {
-          const stillExists = list.some(r => r.id === prev)
-          const next = stillExists ? prev : (list[0]?.id ?? null)
-          onSelectionChange?.(next)
-          return next
-        })
+      
+        const storedStillValid = list.some(r => r.id === storedId)
+        const resolved = storedStillValid ? storedId! : (list[0]?.id ?? null)
+
+        if (!storedStillValid) {
+          
+          await saveResumeId(resolved)
+        }
+
+        setSelectedResumeId(resolved)
+        onSelectionChange?.(resolved)
       }
     } catch (err) {
       console.error('Failed to fetch tier info:', err)
@@ -68,8 +98,9 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
 
   useEffect(() => { fetchTierAndResumes() }, [user, token])
 
-  const handleSelectResume = (id: number) => {
+  const handleSelectResume = async (id: number) => {
     setSelectedResumeId(id)
+    await saveResumeId(id)         
     onSelectionChange?.(id)
   }
 
@@ -90,17 +121,13 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
     fileInputRef.current?.click()
   }
 
-
   const handleViewResume = async () => {
     try {
-      
       const url = (tierInfo?.is_pro && selectedResumeId)
         ? `${API_URL}/api/resume/${selectedResumeId}/view`
         : `${API_URL}/api/resume/view`
 
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       if (!response.ok) throw new Error('Failed to fetch resume')
       const blob = await response.blob()
       const objectUrl = URL.createObjectURL(blob)
@@ -157,6 +184,7 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
       if (!response.ok) throw new Error(data.error || 'Upload failed')
 
       setUploadSuccess(true)
+      
       await fetchTierAndResumes()
 
       try {
@@ -211,7 +239,7 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
         </div>
       )}
 
-   
+      
       <div style={{ display: 'flex', gap: '6px', alignItems: 'stretch' }}>
         {hasResume && (
           <button
@@ -286,7 +314,7 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
 
       <input type="file" accept=".pdf" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} />
 
-      {/* Pro resume list with radio buttons + delete */}
+      {/* Pro resume list  */}
       {tierInfo?.is_pro && resumes.length > 0 && (
         <div style={{ marginTop: '2px' }}>
           <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px' }}>
@@ -307,16 +335,14 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
                   transition: 'all 0.1s',
                 }}
               >
-                {/* Radio button */}
+                {/* Radio dot */}
                 <div style={{
                   width: '14px', height: '14px', borderRadius: '50%', flexShrink: 0,
                   border: `2px solid ${isSelected ? '#3b82f6' : '#9ca3af'}`,
                   backgroundColor: isSelected ? '#3b82f6' : 'white',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  {isSelected && (
-                    <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'white' }} />
-                  )}
+                  {isSelected && <div style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: 'white' }} />}
                 </div>
 
                 {/* Filename */}
@@ -325,7 +351,7 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   flex: 1, fontWeight: isSelected ? '500' : 'normal',
                 }}>
-                   {r.file_name}
+                  📄 {r.file_name}
                 </span>
 
                 {/* Active badge */}
@@ -339,7 +365,7 @@ export default function ResumeUpload({ onEditClick, onSelectionChange }: ResumeU
                   </span>
                 )}
 
-                {/* Delete button  */}
+                {/* Delete */}
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDeleteResume(r.id) }}
                   disabled={deletingId === r.id}
