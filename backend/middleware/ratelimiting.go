@@ -92,3 +92,7 @@ func ModerateRateLimitMiddleware() gin.HandlerFunc {
 func LenientRateLimitMiddleware() gin.HandlerFunc {
 	return RateLimitMiddleware(2, 120)
 }
+
+func OAuthRateLimitMiddleware() gin.HandlerFunc {
+	return RateLimitMiddleware(rate.Every(3*time.Minute), 5)
+}

@@ -51,8 +51,8 @@ func main() {
 
     r.POST("/api/auth/register", middleware.StrictRateLimitMiddleware(), handlers.RegisterUser)
     r.POST("/api/auth/login", middleware.StrictRateLimitMiddleware(), handlers.LoginUser)
-    r.POST("/api/auth/oauth/google",   handlers.GoogleOAuth)
-    r.POST("/api/auth/oauth/linkedin", handlers.LinkedInOAuth)
+    r.POST("/api/auth/oauth/google",   middleware.OAuthRateLimitMiddleware(), handlers.GoogleOAuth)
+    r.POST("/api/auth/oauth/linkedin", middleware.OAuthRateLimitMiddleware(), handlers.LinkedInOAuth)
 
     authorized := r.Group("/api")
     authorized.Use(middleware.AuthMiddleware())
